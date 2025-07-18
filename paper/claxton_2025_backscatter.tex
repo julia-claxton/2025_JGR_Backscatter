@@ -1,0 +1,423 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AGUJournalTemplate.tex: this template file is for articles formatted with LaTeX
+%
+% This file includes commands and instructions
+% given in the order necessary to produce a final output that will
+% satisfy AGU requirements, including customized APA reference formatting.
+%
+% You may copy this file and give it your
+% article name, and enter your text.
+%
+% guidelines and troubleshooting are here: 
+
+%% To submit your paper:
+\documentclass[draft]{agujournal2019}
+\usepackage{url} %this package should fix any errors with URLs in refs.
+\usepackage{lineno}
+\usepackage[inline]{trackchanges} %for better track changes. finalnew option will compile document with changes incorporated.
+\usepackage{soul}
+
+\linenumbers
+
+% Julia's packages
+\usepackage{amssymb,amsmath,mathtools,amsthm,amscd,mathrsfs,graphicx,color} % Basics
+\usepackage[cmtip,all,matrix,arrow,tips,curve]{xy} % For drawing diagrams
+\usepackage[active]{srcltx} % Allows jumping from code <-> pdf
+\usepackage{anyfontsize} % Fixes issues with font size
+\usepackage{cancel} % Provides cancellation symbol in equations
+\usepackage{verbatim} % Provides comment environment and printing of literal text
+\usepackage{bm} % For bold symbols
+\usepackage{wrapfig} % Allows text to wrap around figures
+\usepackage{float} % Allows forcing figure positions
+\usepackage{tikz} % Allows creation of native figures
+\usepackage{hhline} % Provides double hlines for tables
+\usepackage{enumitem} % Allows for [nosep] and [noitemsep] in enumerate environment
+
+% Julia's commands
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1}]}}
+\newcommand{\e}[1]{\cdot 10^{#1}}
+\newcommand{\del}{\bm{\nabla}}
+\newcommand{\cross}{\times}
+\newcommand{\mathdeg}{^\circ}
+
+\newcommand{\dataselectiontime}{$201$ hours ($254,838$ spacecraft spins) }
+\newcommand{\backscattertime}{$26$ hours ($33,366$ spacecraft spins) }
+
+%%%%%%%
+% As of 2018 we recommend use of the TrackChanges package to mark revisions.
+% The trackchanges package adds five new LaTeX commands:
+%
+%  \note[editor]{The note}
+%  \annote[editor]{Text to annotate}{The note}
+%  \add[editor]{Text to add}
+%  \remove[editor]{Text to remove}
+%  \change[editor]{Text to remove}{Text to add}
+%
+% complete documentation is here: http://trackchanges.sourceforge.net/
+%%%%%%%
+
+
+
+\draftfalse
+
+%% Enter journal name below.
+%% Choose from this list of Journals:
+%
+% JGR: Atmospheres
+% JGR: Biogeosciences
+% JGR: Earth Surface
+% JGR: Oceans
+% JGR: Planets
+% JGR: Solid Earth
+% JGR: Space Physics
+% Global Biogeochemical Cycles
+% Geophysical Research Letters
+% Paleoceanography and Paleoclimatology
+% Radio Science
+% Reviews of Geophysics
+% Tectonics
+% Space Weather
+% Water Resources Research
+% Geochemistry, Geophysics, Geosystems
+% Journal of Advances in Modeling Earth Systems (JAMES)
+% Earth's Future
+% Earth and Space Science
+% Geohealth
+%
+% ie, \journalname{Water Resources Research}
+
+\journalname{JGR: Space Physics}
+
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  TITLE
+%
+% (A title should be specific, informative, and brief. Use
+% abbreviations only if they are defined in the abstract. Titles that
+% start with general keywords then specific terms are optimized in
+% searches)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Example: \title{This is a test title}
+
+\title{Electron Backscatter in Energetic Particle Precipitation: Data Analysis and Simulation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  AUTHORS AND AFFILIATIONS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Authors are individuals who have significantly contributed to the
+% research and preparation of the article. Group authors are allowed, if
+% each author in the group is separately identified in an appendix.)
+
+% List authors by first name or initial followed by last name and
+% separated by commas. Use \affil{} to number affiliations, and
+% \thanks{} for author notes.
+% Additional author notes should be indicated with \thanks{} (for
+% example, for current addresses).
+
+% Example: \authors{A. B. Author\affil{1}\thanks{Current address, Antartica}, B. C. Author\affil{2,3}, and D. E.
+% Author\affil{3,4}\thanks{Also funded by Monsanto.}}
+
+\authors{Julia Luna Claxton\affil{1}, Robert Marshall\affil{1}}
+
+\affiliation{1}{Ann and H. J. Smead Department of Aerospace Engineering Sciences, University of Colorado Boulder}
+\affiliation{1}{Boulder, CO, USA}
+
+% Corresponding author mailing address and e-mail address:
+% (include name and email addresses of the corresponding author.  More
+% than one corresponding author is allowed in this LaTeX file and for
+% publication; but only one corresponding author is allowed in our
+% editorial system.)
+
+% Example: \correspondingauthor{First and Last Name}{email@address.edu}
+\correspondingauthor{Julia Luna Claxton}{julia.claxton@colorado.edu}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% KEY POINTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  List up to three key points (at least one is required)
+%  Key Points summarize the main points and conclusions of the article
+%  Each must be 140 characters or fewer with no special characters or punctuation and must be complete sentences
+
+\hfuzz=100pt % Stop giving me overfull hbox errors for every single line that wraps!!!
+
+\begin{keypoints}
+\item The rate of atmospheric backscatter of radiation belt electrons is constrained using data collected from low-Earth orbit.
+\item An improved Monte Carlo model is used to simulate electron-atmosphere interactions and is validated using the same in-situ data.
+\item The sensitivity and pitch angle distributions of backscattered populations are characterized using this new Monte Carlo model.
+\end{keypoints}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%  ABSTRACT and PLAIN LANGUAGE SUMMARY
+%
+% A good Abstract will begin with a short description of the problem
+% being addressed, briefly describe the new data or analyses, then
+% briefly states the main conclusion(s) and how they are supported and
+% uncertainties.
+
+% The Plain Language Summary should be written for a broad audience,
+% including journalists and the science-interested public, that will not have 
+% a background in your field.
+%
+% A Plain Language Summary is required in GRL, JGR: Planets, JGR: Biogeosciences,
+% JGR: Oceans, G-Cubed, Reviews of Geophysics, and JAMES.
+% see http://sharingscience.agu.org/creating-plain-language-summary/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \begin{abstract} starts the second page
+
+\begin{abstract}
+When particles from the radiation belts impinge on the atmosphere, they can be absorbed into the atmosphere or deflected back into the magnetosphere. The deflection of particles back into the magnetosphere is known as backscatter, and is a key link connecting the atmosphere to the magnetosphere involving collisions with atmospheric neutrals, magnetic mirroring, the production of secondary emissions, and energy transfer from the particle to the atmosphere. Backscatter is both a feedback mechanism to magnetospheric precipitation drivers and an indirect measure of atmospheric energy absorption, making it an important process to quantify and understand.
+
+In this work, we use data from the Electron Fields and Losses INvestigation (ELFIN) satellites to quantify backscatter rates. We find that backscatter rates vary between $\sim 5\%$ during periods of loss cone filling and $\sim 60\%$ during periods without loss cone filling. We then compare the ELFIN backscatter data to the results of an updated and improved Monte Carlo-based simulation and find excellent agreement for the mean backscatter rates. Errors in backscatter predictions on a case-by-base basis are attributed to insufficient pitch angle resolution in the in-situ data along with high sensitivity of backscatter to pitch angle near the loss cone edge. Finally, we use our improved Monte Carlo model to characterize the pitch angle and energy dependence of backscatter and the pitch angle distributions of backscattered electrons, finding results consistent with previous modeling efforts.
+\end{abstract}
+
+\section*{Plain Language Summary}
+% https://www.agu.org/Share-and-Advocate/Share/Community/Plain-language-summary
+Near-Earth space is filled with high-energy radiation moving in a variety of different directions. When this radiation impacts the Earth's atmosphere, we can experience a number of adverse effects, including the depletion of the ozone layer and disruptions to telecommunications and power distribution. The Earth's atmosphere and magnetic core help deflect this radiation, but it is not currently known exactly what percentage of incoming radiation breaches these defenses and is deposited in the atmosphere.
+
+In this paper, we use a radiation detector on an Earth-orbiting satellite to determine exactly how much radiation the Earth's atmosphere and magnetic field repels. We find that the amount of radiation repelled depends on the angle at which the radiation approaches the Earth. Only about 5\% of radiation that is directed straight at the Earth gets repelled, while up to 60\% of incoming radiation at shallower angles is repelled. We then use computer simulations to find that the Earth's atmosphere is responsible for repelling the direct radiation, while the Earth's magnetic field is responsible for repelling the radiation at shallow angles.
+
+Studying how often and by what method spaceborne radiation is repelled helps us prepare for extreme events such as solar storms more effectively by allowing us to forecast how much of the radiation they emit will reach crucial infrastructure systems on the ground, since solar storms can alter the angle that radiation approaches the Earth at. The information in this paper allows space weather forecasters to better predict and mitigate the effects of space radiation impacting the Earth.
+
+\section{Introduction}
+Energetic particle precipitation (EPP) is the process where charged particles from the Earth's magnetosphere collide with the atmosphere. In this process, particles either deposit their energy in the atmosphere or are deflected back into the magnetosphere via magnetic mirroring and collisions with atmospheric neutrals. Atmospheric deposition of energetic particles causes cascade effects such as the production of odd hydrogen and odd nitrogen that can in turn reduce ozone concentrations in the stratosphere \cite{randall2005, seppällä2007, sinnhuber2012, funke2014, koskinen-beltbook}. Additionally, EPP is a central loss process for the radiation belts \cite{ripoll2020, millan2007}. The deflection, or scattering, of precipitating particles back into the magnetosphere is known as backscatter. Backscatter is an important process in the magnetosphere, serving both as a feedback mechanism that directly shapes the characteristics of many observed precipitation patterns -- such as bouncing packets, diffuse aurora, and lightning-induced electron precipitation \cite{feinland2024, wetzel2024, khazanov2021, cotts2011, davidson1977} -- and as an indirect measure of atmospheric energy absorption due to EPP. However, until recently, no datasets have been produced with sufficient angular resolution to quantify backscatter on a global scale. This deficiency has been overcome in recent years with the launch of the Electron Losses and Fields INvestigation (ELFIN) mission \cite{angelopoulos2020}.
+
+In this paper, we quantify the rates of EPP backscatter using data from the ELFIN satellites; compare those results with simulations using an updated and improved Monte Carlo-based EPP model and evaluate the model's performance at predicting backscatter; and use our model to characterize the energy and pitch angle characteristics of backscatter.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/splash.png}
+  \caption{
+    Schematic representation of the interconnected magnetosphere-atmosphere system. Backscatter is a key component of this system, acting as a feedback mechanism that closes the loop between the atmosphere and magnetosphere.
+  }
+  \label{figure:splash}
+\end{figure}
+
+\section{Background}
+The existence of backscatter has been known for nearly as long as the radiation belts themselves. In the early 1960s, a sounding rocket experiment measured upgoing auroral fluxes with nearly the same intensity as downgoing fluxes in the lower thermosphere ($\sim 100$~km) \cite{mcdiarmid1961}, sparking interest in the phenomenon. Backscatter was observed on spaceborne platforms shortly after, with backscatter ratios (backscattered flux divided by precipitating flux) observed on the order of $10\%$ \cite{obrien1962, obrien1964}. Further interest was generated by \citeA{cummings1966} with the discovery that backscatter showed a dependence on precipitating flux, ranging from approximately $20\%$ at high fluxes to nearly $100\%$ at low fluxes. \citeA{richards2008} used data from the FAST satellite, finding backscatter ratios for sub-$100$~keV electrons in the range of approximately $25\%$ at $100$~keV up to nearly $100\%$ in the sub-eV range. The high backscatter for lower energy channels indicates a softening of precipitating particle energy spectra.
+
+On the theoretical side, a number of simulation studies have been conducted to better understand EPP backscatter \cite{maeda1965, cummings1966, walt1968, banks1970, banks1974, berger1974, mantas1976, davidson1977, lejeune1979, cotts2011, marshall2018, berland2023}. Techniques for both simulating and reporting backscatter statistics vary from author to author. For example, early models \cite{maeda1965, berger1974} did not incorporate the effect of magnetic mirroring. Some studies analyzed backscatter as a function of pitch angle \cite{berger1974, cotts2011, marshall2018, berland2023}, but many opted to study the backscatter of predefined pitch angle distributions as a function of energy, thus neglecting a key sensitivity \cite{maeda1965, cummings1966, walt1968, banks1970, banks1974, mantas1976, solomon2001}. In addition to differences in simulation procedure, a number of different quantities have been referred to as "backscatter", further complicating comparisons \cite{mantas1976}. A comprehensive simulation of backscatter incorporating a realistic magnetic field without prescribed input pitch angle or energy distributions for electrons would not come until \citeA{cotts2011}, followed by \citeA{marshall2018} and \citeA{berland2023}.
+
+Despite the inconsistencies in simulation and reporting, some general trends emerge from the literature. First, we note that backscatter ratios inside the trapped region are significantly lower in simulations that do not incorporate magnetic mirroring, indicating that mirroring is a critical process in shaping the bounce loss cone. Second, the energy spectrum of backscattered populations is much softer (skewed toward lower energies) than the incoming spectrum, with backscattered fluxes often exceeding downgoing fluxes in low-energy regimes due to the effect of high-energy particles being backscattered at lower energies. This effect is responsible for the near-$100\%$, and sometimes greater than-$100\%$, backscatter ratios observed in-situ (e.g. \citeA{mcdiarmid1961, cummings1966, richards2008}). Additionally, we notice a trend of generally higher backscatter ratios being predicted and observed at lower precipitating fluxes. Finally, we note that interaction with the atmosphere serves to diffuse a pitch angle distribution with the intensity of diffusion increasing as the input pitch angle distribution becomes more field-aligned.
+
+Backscatter plays a role in shaping a number of precipitation patterns \cite{wetzel2024, khazanov2021, cotts2011, davidson1977}. However, it remains an understudied phenomenon in part due to a lack of data with sufficient resolution to accurately constrain it for radiation belt electrons. Direct measurement of EPP distributions in the loss and anti-loss cone has been limited by instrument field-of-view and pitch angle resolution compared to the loss cone width (e.g. RBSP) or instrument attitude relative to the geomagnetic field (e.g. POES). Ground-based measurements of EPP (e.g. PFISR) cannot determine incoming EPP distributions without the use of inversion methods \cite{juarez2023, sanchez2022, turunen2016, miyoshi2015}. With modern data from low-Earth orbit, however, we now have the tools to both comprehensively quantify backscatter rates and validate backscatter models.
+
+\section{Data Source: ELFIN}
+The Electron Losses and Fields Investigation (ELFIN) mission was a pair of twin CubeSats that launched in 2018 into a polar low-Earth orbit with $\sim450$~km altitude and $\sim 93\mathdeg$ inclination. The satellites had 16 energy channels approximately logarithmically spaced between $50$~keV to $6$~MeV. The electron detector had a field of view of $\sim 22.5\mathdeg$ that swept over a full rotation approximately every $2.8$~seconds via spacecraft spin. The pitch angle coverage of each spin was dependent on the angle between the spacecraft spin axis and the local magnetic field. The spacecraft spin provided energy- and pitch-angle resolved fluxes during the ELFIN data collection periods discerning the loss cone, trapped region, and anti-loss cone in unprecedented detail \cite{angelopoulos2020}. During ELFIN's science collection periods, the loss cone width, assuming a mirror altitude of $100$~km, was approximately $67\mathdeg$ in the Northern hemisphere and approximately $113\mathdeg$ in the Southern hemisphere. An example of ELFIN data from the Southern hemisphere is shown in Figure \ref{figure:elfin-data}. The top panel shows omnidirectional differential electron flux recorded by ELFIN over time yielded by multiplying the recorded fluxes at each timestep by ELFIN's solid angle field of view and summing over pitch angle. The bottom panels show the flux measured at three selected timesteps as a function of energy and pitch angle without any integration applied. The loss cone angle is marked with a solid line and the label ``LC''. The anti-loss cone angle is marked a dashed line and the label ``ALC''. The trapped region lies between these two lines and is labelled ``Trap''. The first panel shows ambient fluxes in the outer radiation belt; the second panel, measured in the current sheet, shows an example of pitch angle scattering due to field line curvature into the loss cone with significant backscatter; and the third panel shows a quiet distribution in the polar cap with very little flux.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/elfin_data_with_arrows.png}
+  \caption{
+    Example data collected from ELFIN. Top: Differential omnidirectional electron number flux as a function of time. Solid red lines indicate the selected timesteps of the bottom panels. Bottom: Differential directional electron number fluxes at selected timesteps. Solid red lines indicate the pitch angle of the $100$~km loss cone (``LC'') and dashed red lines indicate the pitch angle of the conjugate anti-loss cone (``ALC''), both calculated using IGRF \cite{angelopoulos2020}. The trapped region is marked as ``Trap''. This pass was recorded in the southern hemisphere, thus the loss cone angle is greater than $90\mathdeg$. All times are given in UTC.
+  }
+  \label{figure:elfin-data}
+\end{figure}
+
+
+\subsection{Data Selection} \label{sec:data-selection}
+For our analysis, all ELFIN data were divided into segments lasting 3 spacecraft spin periods ($\sim 8$~seconds; $\sim 24$~km along track) each. This spin-averaging was done to smooth the data, as ELFIN has occasional artifacts that can be alleviated via integration over multiple spins. Each 3-spin segment was then either discarded or retained for analysis based on its pitch angle coverage. A data segment was kept if it had continuous pitch angle coverage between $5\mathdeg$ and $175\mathdeg$, determined using the ELFIN Energetic Particle Detector's nominal field of view of $22.5\mathdeg$ \cite{angelopoulos2020}. This selection criteria ensures that no more than $10\mathdeg$ of the pitch angle distribution ($\approx 0.05$~str) are unrecorded. If any portion of the data segment fell within a period of unreliable data, as provided on the ELFIN data website, the segment was discarded. A known type of corrupted data where all pitch angle look directions measured a uniform high flux was also removed by discarding any data segment with loss cone flux greater than $10^{4.5}$~electrons-cm$^{-2}$-s$^{-1}$ and number backscatter ratio (see Section \ref{section:data-backscatter} for backscatter ratio calculation) greater than $85\%$. Noise was then removed within each remaining data segment by zeroing out any data points with relative error greater than $50\%$, where relative error was computed by the ELFIN team as Poisson noise using Equation \ref{equation:relative-error} \cite{tsai-email}. In Equation \ref{equation:relative-error}, $\frac{\delta q}{q}$ is the relative error in a given measurement, and $N_\text{counts}$ is the total number of counts the electron detector recorded during the measurement. After applying these conditions to the lifetime of both ELFIN satellites, we were left with \dataselectiontime of data collected over $2$~years. This dataset will be further downselected after the quantification of backscatter in Section \ref{section:data-backscatter} to only retain the highest quality segments.
+
+\begin{equation}
+  \label{equation:relative-error}
+  \frac{\delta q}{q} = \frac{1}{\sqrt{N_\text{counts}}}
+\end{equation}
+
+
+\section{ELFIN Backscatter Rates} \label{section:data-backscatter}
+In this work, we define the number backscatter ratio $r_N$ as the number of particles backscattered divided by the number of precipitating particles. Similarly, we define the energy backscatter ratio $r_E$ as the amount of backscattered energy divided by the amount of precipitating energy (Equation \ref{equation:backscatter-ratios}). In ELFIN data, we define input fluxes as any fluxes within the $100$~km bounce loss cone and backscattered fluxes as any fluxes within the conjugate anti-loss cone.
+
+\begin{align}
+  \label{equation:backscatter-ratios}
+  & r_{N} = \frac{\#_\text{ALC}}{\#_\text{LC}} & r_{E} = \frac{E_\text{ALC}}{E_\text{LC}} &
+\end{align}
+
+Backscatter rates were derived from the ELFIN data segments via the following procedure. Each data segment was divided into loss cone and anti-loss cone regions based on the central pitch angle of ELFIN's look directions during the segment. Since ELFIN's particle detector field of view is $\sim 22.5\mathdeg$ wide \cite{angelopoulos2020}, it was determined that a look direction's boresight angle must be more than $16.25\mathdeg$ away from the loss or anti-loss cone edge, leaving a $5\mathdeg$ gap between the edge of ELFIN's field of view and the loss \& anti-loss cone edge in order to ensure no particles from the trapped region were counted. The loss and anti-loss cone angles were calculated as the pitch angles having $100$~km mirror altitudes using IGRF \cite{angelopoulos2020, tsai-email}; this angle varies geographically by a few degrees over the $L$ ranges probed by ELFIN. Each look direction satisfying these constraints for the loss cone and anti-loss cone was then integrated over energy, pitch angle, area, and time to retrieve the total electron counts and total energy recorded in the loss cone and anti loss cone. The backscatter ratios $r_N$ and $r_E$ were calculated per Equation \ref{equation:backscatter-ratios}.
+
+After the backscatter ratio was calculated for a given data segment, the error was found by propagating the relative error in the flux measurement at each time, energy, and pitch angle (Equation \ref{equation:relative-error}) through the steps taken to calculate the backscatter ratios. Any value of $r_N$ or $r_E$ with absolute uncertainty greater than $\sigma \approx 0.025$ was discarded. The discarded data is not necessarily unreliable -- we are simply being very strict in our selection criteria to ensure the backscatter ratios we analyze are the highest-quality data ELFIN has to offer. This selection criteria resulted in a set of backscatter ratios derived from \backscattertime of data collected over $2$~years. The coverage of this data in L-shell and magnetic local time (MLT) calculated using the T87LONG magnetic field model \cite{tsyganenko1987} is shown in Figure \ref{figure:data-coverage}. The backscatter ratios calculated from this dataset are shown in Figure \ref{figure:data-backscatter}.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/data_coverage.png}
+  \caption{
+    L-MLT coverage of the ELFIN dataset from which we will calculate backscatter ratios. This dataset encompasses \backscattertime of ELFIN data collected over $2$~years. L and MLT are calculated using the T87 magnetic field model.
+  }
+  \label{figure:data-coverage}
+\end{figure}
+
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/elfin_backscatter_vs_nflux.png}
+  \caption{
+    Backscatter ratios derived from \backscattertime of ELFIN data. Backscatter ratio is defined as the total electron number or energy measured in the anti-loss cone divided by the total number or energy measured in the loss cone. Any measurement of backscatter ratio with absolute uncertainty greater than $\sigma \approx 0.025$ was discarded.
+  }
+  \label{figure:data-backscatter}
+\end{figure}
+
+The data-derived backscatter distribution in Figure \ref{figure:data-backscatter} demonstrates three notable features, from left to right in the figure: i) low backscatter ratios at low loss cone fluxes; ii) backscatter rates spanning low and high rates at medium fluxes; and iii) low backscatter ratios at high fluxes.
+
+First we consider the low backscatter ratios at low loss cone fluxes ($\lesssim 10^{3.25}$~electrons-cm$^{-2}$-s$^{-1}$). This is not a physical phenomenon, but rather a representation of our error propagation scheme and ELFIN's particle detector sensitivity. Since we are utilizing Poisson noise statistics to determine the uncertainty in the ELFIN measurements (Equation \ref{equation:relative-error}), lower fluxes have higher uncertainty. In this region, the fluxes in the loss cone just barely clear our uncertainty threshold to be included in the analysis. Even a small reduction in these fluxes due to interaction with the atmosphere is sufficient to push backscattered fluxes below our uncertainty threshold, whereupon we zero out the backscatter readings for these inputs. In this manner, backscattered particles are missed by falling below ELFIN's noise floor, creating backscatter ratios with artificially low values for these fluxes.
+
+At high fluxes ($\gtrsim 10^{5}$~\# cm$^{-2}$ s$^{-1}$), we see backscatter ratios in the range of approximately $r_N \in [5\%, 20\%]$ and $r_E \in [0\%, 15\%]$. This likely indicates a low rate of backscatter deep in the loss cone. This is because high loss cone fluxes indicate filling via pitch angle scattering (including curvature scattering) processes, which isotropizes the pitch angle distribution and fills the loss cone. The magnetic mirror force is less effective for these more field-aligned particles, sending them deeper into the atmosphere, causing them to be backscattered at lower rates. At this flux level in the loss cone, this pitch angle-scattered population greatly exceeds any ambient populations. Thus, the backscatter ratio for these pitch angle-scattered particles dominates, creating the lower backscatter rates we observe at high loss cone fluxes.
+
+At medium fluxes (between approximately $10^{3.25}$~\# cm$^{-2}$ s$^{-1}$ and $10^{5}$~\# cm$^{-2}$ s$^{-1}$), we see a spreading of the distribution with backscatter ratios of approximately $r_N, r_E \in [5\%$, $70\%]$. We believe the lower backscatter ratios ($\lesssim 20\%$) in this range are due to particles scattered into the loss cone, as described previously. We believe the higher backscatter ratios ($\gtrsim 50\%$) indicates much higher backscatter rates near the loss cone edge. When this population is isolated -- i.e. when there is weaker pitch-angle scattering -- we see much higher backscatter ratios, since any particles deep in the loss cone are lost quickly without a refilling process. This leaves behind only particles near the loss cone edge, indicating that backscatter rates near the loss cone edge can be much higher than the rates at more field-aligned angles. We validate this conjecture in Section \ref{section:simulation}. Finally, we believe the intermediate range between the high and low backscatter values represent various strengths of pitch angle scattering causing a weighted mix between the high ambient backscatter rates and the lower pitch angle scattering-induced backscatter rates.
+
+If our interpretation of this pattern is correct, we should observe a decreasing backscatter ratio with increased filling of the loss cone and high backscatter rates observed at times with less filling of the loss cone. If we use the ratio of precipitating flux over trapped flux as a measure of pitch angle distribution isotropization, and thereby loss cone filling (e.g. \citeA{capannolo2023}), we indeed observe this pattern (Figure \ref{figure:backscatter-vs-precipitation}, left). Recalling that low loss cone fluxes cause artificially low backscatter ratios, we remove measurements with loss cone fluxes below $10^{3.25}$~electrons-cm$^{-2}$-s$^{-1}$ and find a clear pattern confirming our interpretation (Figure \ref{figure:backscatter-vs-precipitation}, right). A fit of the curve in \ref{figure:backscatter-vs-precipitation} can be found in the Supporting Information.
+
+Additionally, visual inspection of individual data segments at various backscatter levels support the conclusion that high backscatter ratios are present during times of ambient precipitation (i.e. no loss cone filling), low backscatter ratios are seen during times where the loss cone is filled, and intermediate backscatter ratios occur during the in-between cases. Example ELFIN data for each of these situations is shown in Figure \ref{figure:filling-vs-backscatter}. The left panel shows the case of ambient populations with an unfilled loss cone, where the majority of precipitating flux resides just inside the loss cone edge. This case has a high backscatter ratio of $r_N = 0.72$, indicating the high backscatter ratios in the region near the loss cone edge. The center panel shows the case of strong loss cone filling. Here, the fluxes reside significantly deeper into the loss cone, with significant fluxes reaching field-aligned angles. This case shows very little backscatter with $r_N = 0.05$, indicating that the backscatter rates deep in the loss cone are much lower than pitch angles near the loss cone. Finally, the right panel shows a data segment with an intermediate backscatter ratio of $r_N = 0.31$, showing a blend of the characteristics of the left and center panels. Some loss cone filling can be observed, but it is not as extreme as the center panel. Thus, we conclude that the dependence of backscatter ratio on loss cone filling indicates the underlying sensitivity of backscatter to pitch angle, with pitch angles near the loss cone edge having high backscatter ratios, transitioning to near-zero backscatter ratios at field-aligned angles.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/backscatter_vs_precipitation_ratio.png}
+  \caption{
+    Number backscatter ratio vs. loss cone filling strength derived from \backscattertime of ELFIN data. Any measurement of backscatter ratio with absolute uncertainty greater than $\sigma \approx 0.025$ was discarded. Left: Results using data as previously described. Right: Measurements with precipitating flux less than $10^{3.5}$~electrons-cm$^{-2}$-s$^{-1}$ removed to avoid artificially lowered backscatter ratios due to backscattered fluxes falling below the instrument noise floor. Energy backscatter ratio has a similar pattern to number backscatter ratio and is not shown for brevity.
+  }
+  \label{figure:backscatter-vs-precipitation}
+\end{figure}
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/filling_vs_backscatter.png}
+  \caption{
+    ELFIN-measured fluxes for data segments at three different levels of backscatter. Left: A data segment with little filling of the loss cone and high backscatter ratio. Center: A data segment with strong loss cone filling and low backscatter ratio. Right: A data segment with partial loss cone filling and an intermediate backscatter ratio. Solid lines indicate the pitch angle of the $100$~km loss cone, and dashed lines indicate the conjugate anti-loss cone pitch angle. The center panel was recorded in the Southern hemisphere, thus $\alpha_{LC} > \alpha_{ALC}$.
+  }
+  \label{figure:filling-vs-backscatter}
+\end{figure}
+
+
+
+\section{Precipitation Model: Geant4}
+With backscatter rates constrained by ELFIN data, we now have the ability to directly evaluate the performance of precipitation models. Our approach to precipitation modelling is based on the work of \citeA{berland2023}; our model began as a fork from their simulation code. The precipitation model used in this work utilizes Geant4, a kinetic particle simulation code developed by CERN \cite{agostinelli2003}. Geant4 simulates the interactions of particles with any user-specified material. Here, we utilize Geant4's built-in QBBC physics list, which is the recommended physics list for space radiation applications \cite{ivantchenko2012}. QBBC includes the effects of bremsstrahlung photon production, an important process at radiation belt energies. For a description of the exact processes and cross sections included in the Geant4 QBBC list, see Section 3 of \citeA{berland2023}. No biasing methods such as bremsstrahlung splitting are used in our simulation in order to conserve energy. The parameters used in our model are compared with those used in \citeA{berland2023} in Table \ref{table:comparison}.
+
+\begin{table}[]
+  \centering
+  \begin{tabular}{lll}
+    \textbf{Parameter} & \textbf{Berland 2023} & \textbf{This Work} \\
+    \hline
+    Physics List & QBBC & QBBC \\
+    Statistical Biasing &  $100$x Bremsstrahlung Splitting & None \\
+    Magnetic Field & Uniform & Centered Dipole \\
+    Magnetic Latitude & $65.77\mathdeg$ & $65.77\mathdeg$ \\
+    Electron Injection Altitude & $300$~km & $449.5$~km \\
+    Electron Collection Altitude & $500$~km & $450.5$~km \\
+    Minimum Measurable Electron Energy & $0.1$~keV & $0.01$~keV \\
+    Atmosphere Model & NRLMSISE00 & NRLMSISE00 \\
+    Atmosphere Resolution & $1$~km & $1$~km \\
+    Atmosphere Model Time & 2018-01-01 03:00:00 UTC & 2018-01-01 03:00:00 UTC \\
+    Atmosphere Model Location (lat, lon) & ($65.0\mathdeg$, $-148.0\mathdeg$) & ($65.0\mathdeg$, $-148.0\mathdeg$)
+  \end{tabular}
+  \caption{
+    Description of the parameters used in our Monte Carlo simulation, along with the parameters from \citeA{berland2023} upon which our simulation is based.
+  }
+  \label{table:comparison}
+\end{table}
+
+Following the procedure of \citeA{berland2023}, we use this model to inject a series of mono-energetic, mono-pitch angle beams consisting of $100,000$ electrons each into the atmosphere from above. These beams were simulated every 5 degrees in pitch angle from $0\mathdeg$ to $90\mathdeg$, with the exception of the range from $60\mathdeg$ to $70\mathdeg$, where beams were simulated every $1\mathdeg$. This higher resolution accounts for the high sensitivity of backscatter in the pitch angle range surrounding the $100$~km loss cone angle ($\approx 67\mathdeg$ at our injection altitude). The beams were simulated at the center of each of ELFIN's energy channels, from $63$~keV to $6500$~keV, spaced nearly uniformly in logarithmic space. For each beam, the atmospheric energy deposition and backscattered electron distribution was recorded. A particle was defined as backscattered when it reached the collection altitude with a vertical component of velocity pointed away from the Earth's surface. All backscattered particles were terminated after being recorded. This procedure resulted in a series of tables tabulating the backscatter profiles for a variety of input conditions, forming a set of response functions in energy-pitch angle space that can be combined in a weighted sum scheme to approximate the backscatter of arbitrary input distributions.
+
+\section{Model Validation}
+In order to compare ELFIN data to our Geant4 modelling, we require a procedure to fit the fluxes recorded by ELFIN to the set of lookup tables generated with our Geant4 model. We first integrated each data segment described in Section \ref{sec:data-selection} over time to produce an electron distribution in energy-pitch angle space with units of electrons-cm$^{-2}$-MeV$^{-1}$-str$^{-1}$. For distributions measured in the Southern hemisphere, the distribution was reversed along the pitch angle axis to match the Geant4 lookup tables, which were simulated in the Northern hemisphere. The fluence measured in each bin was then multiplied by the energy width of the bin and the instrument's geometric factor to retrieve the absolute counts measured by ELFIN at that location. Then, we perform an azimuth correction procedure. This is because our simulation recorded backscatter for all azimuthal angles, while ELFIN was only able to see part of an azimuthal distribution at any given pitch angle. Thus, before we input the data-derived electron counts to the simulation, we multiply the measured counts at each pitch angle by a scaling factor $C$ defined in Equation \ref{equation:azimuth-correction}, where $\Omega$ is solid angle coverage in steradians, $\theta_\text{EPD}$ is the field of view of the ELFIN detector ($22.5\mathdeg$) and $\alpha_\text{bore}$ is the boresight pitch angle of the ELFIN energetic particle detector. This assumes a uniform azimuthal distribution at a given pitch angle. Figure \ref{figure:azimuth-correction} shows a visual representation of the difference in azimuthal coverage between ELFIN and our simulation.
+
+\begin{equation} \label{equation:azimuth-correction}
+  C(\alpha_\text{bore}) \equiv \frac{\Omega_\text{ELFIN}}{\Omega_\text{sim}} = \frac{2\pi \left(1 - \cos\left(\frac{\theta_\text{EPD}}{2}\right) \right)}{2\pi \left(\cos \left(\alpha_\text{bore} - \frac{\theta_\text{EPD}}{2} \right) - \cos \left(\alpha_\text{bore} + \frac{\theta_\text{EPD}}{2} \right) \right)}
+\end{equation}
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/azimuth_correction.png}
+  \caption{
+    Illustration of the difference in solid angle observed by the satellite ($\Omega_\text{ELFIN}$) and our simulation ($\Omega_\text{sim}$) between two pitch angles $\alpha_1$ and $\alpha_2$. The simulation observes all backscatter in a ring between these two pitch angles, while ELFIN can only observe a proportional fraction of this ring. Under the assumption that fluxes are uniform at a given pitch angle across all azimuthal angles, we can utilize a scaling factor (Equation \ref{equation:azimuth-correction}) to convert the counts measured by the satellite to the counts present in the full ring and vice versa. Diagram is not to scale.
+  }
+  \label{figure:azimuth-correction}
+\end{figure}
+
+After scaling the measured fluxes by azimuthal coverage, we find the nearest pitch angle and energy for which a simulation-derived backscatter lookup table exists for each data bin. Each data bin then adds its azimuth-scaled electron count to that lookup table as a weighting factor. If a data-derived bin had pitch angle coverage that brought it within $5\mathdeg$ of the $100$~km loss cone edge or beyond, it was discarded. This was to avoid the undue influence of trapped particles appearing as if they are in the loss cone and skewing backscatter results, as ELFIN's field of view is not sufficiently small to distinguish trapped particles from precipitating particles near the loss cone edge.
+
+After each eligible data bin assigned its weight to a simulation-derived lookup table, the backscatter from each table was summed by their weight to retrieve a composite backscatter distribution. This composite backscatter was then de-scaled in azimuth by dividing the backscatter at each pitch angle bin by $C$ (Equation \ref{equation:azimuth-correction}). Then, similar to our process when cleaning the ELFIN data, any bins with a predicted backscatter with relative error greater than $50\%$ as defined in Equation \ref{equation:relative-error} were set to zero for parity with the calculation of backscatter on ELFIN. After this process, the total electron count in the anti-loss cone for both the predicted backscatter distribution and the ELFIN-measured distribution were summed and recorded. The full process of simulating ELFIN backscatter is illustrated in Figure \ref{figure:simulation-procedure}.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/simulation_procedure.png}
+  \caption{
+    Illustration of the procedure used to fit Geant4 lookup tables to ELFIN data. 1) ELFIN-recorded fluxes are integrated over time for a given data segment to produce differential directional fluence. 2) Each recording bin is multiplied by its energy span and instrument geometric factor to produce measured electron counts. 3) Each data bin in the loss cone is scaled by azimuthal field of view (see text) and assigns its number of counts as a weight to the nearest energy and pitch angle for which a backscatter lookup table exists. Circular markers indicate the location of these lookup tables, and their color indicates their weight in electron counts. Lookup tables with zero weight are not shown for clarity. 4) Backscatter lookup tables are summed by their total weights, de-scaled in azimuthal field of view (see text), and returned.
+  }
+  \label{figure:simulation-procedure}
+\end{figure}
+
+The process of simulating the backscatter of ELFIN-measured particle distributions was repeated for all data segments that were analyzed in Section \ref{section:data-backscatter}. For each event, the total anti-loss cone electron counts predicted by our simulation scheme was divided by the measured anti-loss cone electron count, providing a statistic by which we may evaluate the performance of our simulation. These ratios are shown in Figure \ref{figure:residuals}.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/backscatter_residuals.png}
+  \caption{
+    Anti-loss cone electron count predicted by lookup tables derived from our Monte Carlo simulation divided by ELFIN-measured anti-loss cone electron counts for all ELFIN data segments that were analyzed in Section \ref{section:data-backscatter}. This is based on \backscattertime of data.
+  }
+  \label{figure:residuals}
+\end{figure}
+
+From Figure \ref{figure:residuals}, we can see that on average, our simulation is a good estimator of backscatter with the data-model residual distribution centered just above $1$. This indicates that there are no systemic biases in our simulation. The order-of-magnitude spread in the distribution can be attributed in part to the resolution of ELFIN's data limiting the accuracy of our modelled inputs to the atmosphere. When modelling backscatter in the very sensitive region within $\sim10\mathdeg$ of the loss cone edge, backscatter ratios predicted by our simulation can change by tens of percent over a single degree (see Section \ref{section:simulation}). With ELFIN's $22.5\mathdeg$ field of view, particles from within this sensitive range are assumed to be at the detector's boresight pitch angle. This process of ``moving'' particles from their unknown true pitch angle to the detector's boresight pitch angle can thus cause a large discrepancy between the particle's true backscatter rate and our estimated backscatter rate. Underestimations of backscatter are caused when a particle that was close to the trapped region is moved to a pitch angle deeper into the loss cone, and overestimations are caused when particles deeper into the loss cone are moved closer to trapped. This issue cannot be avoided without the use of a fitting scheme allowing for interpolation between ELFIN pitch angle bins, which requires assumptions about the pitch angle distribution shape and is out of the scope of this work. We thus believe that this distribution being centered at $1$ represents a good first-order validation of our model demonstrating a lack of systemic bias in our model and thus reasonable simulation of the physics of EPP, despite its wide spread.
+
+
+\section{Simulated Backscatter Characteristics} \label{section:simulation}
+Using the backscatter lookup tables derived from our Monte Carlo simulation, we can analyze the characteristics of backscatter. In this study, following on the work of \cite{marshall2018}, we investigate the pitch angle and energy dependence of backscatter along with the pitch angle distribution of backscattered electrons. Figure \ref{figure:predicted-backscatter} illustrates our predicted backscatter ratios as a function of energy and pitch angle. First, we note the extremely sharp increase in backscatter ratio near the $100$~km loss cone angle of $67\mathdeg$. When magnetic mirroring was removed from the simulation, this steep gradient disappeared entirely, confirming that the loss cone boundary observed in this simulation is primarily due to the effects of magnetic mirroring. Secondly, we note that the number backscatter is strictly greater than the energy backscatter. This is due to the fact that for a monoenergetic electron beam, electrons can lose energy to the atmosphere but still be backscattered, causing a reduction in energy backscattered without impacting the total number backscattered. On the other hand, it is not possible for an electron to gain energy in the atmosphere in this simulation, meaning that it is not possible for the energy backscatter ratio to exceed the number backscatter ratio for a monoenergetic input beam. The rates and sensitivity of backscatter presented in Figure \ref{figure:predicted-backscatter} agree with previous work simulating backscatter \cite{marshall2018, cotts2011}.
+
+\begin{figure}
+    \noindent\includegraphics[width=\textwidth]{figures/predicted_backscatter.png}
+    \caption{
+      Backscatter ratios for various simulated beams consisting of $100,000$ monoenergetic, mono-pitch angle electrons injected into our Geant4 simulation as a function of energy and pitch angle. Electrons were injected into the simulation at $449.5$~km and recorded at $450.5$~km, where the $100$~km loss cone angle is approximately $67\mathdeg$. Left-side panels show number backscatter, and right-side panels show energy backscatter. Top panels show the pitch angle range of $0\mathdeg$ to $90\mathdeg$, and bottom panels show a zoomed-in view on the pitch angle range from $60\mathdeg$ to $70\mathdeg$.
+    }
+    \label{figure:predicted-backscatter}
+\end{figure}
+
+The next parameter of interest is the pitch angle distribution (PAD) of backscattered electron populations. To visualize the dependence of backscattered PADs on pitch angle at a given energy, we calculate the backscattered PAD for each input pitch angle for which we have lookup tables available in units of electrons per steradian. This backscattered PAD is then normalized to integrate to unity over pitch angle for clarity of visualization, putting the PAD in units of electrons per steradian (PAD units) times degrees (unit from the normalization). This 1D distribution is then plotted horizontally on a heatmap with color representing the density of the distribution. This process was repeated for each input pitch angle at a given energy. The result of this procedure for two input energies is shown in Figure \ref{figure:backscattered-pads}.
+
+\begin{figure}
+  \noindent\includegraphics[width=\textwidth]{figures/backscattered_pads.png}
+  \caption{
+    Input pitch angle vs. backscattered pitch angle derived from simulation at a variety of discrete input pitch angles. Each row represents the backscattered pitch angle distribution of a mono-pitch angle, monoenergetic input beam, normalized to solid angle coverage and to integrate to unity. Particles that started in the trapped region and were backscattered in the anti-loss cone are referred to as ``untrapped'', and particles that started in the loss cone and were backscattered in the trapped region are referred to as ``retrapped''. The $100$~km loss cone angle in this simulation is approximately $67\mathdeg$.
+  }
+  \label{figure:backscattered-pads}
+\end{figure}
+
+Figure \ref{figure:backscattered-pads} shows that for input pitch angles deep in the loss cone between approximately $0\mathdeg$ and $50 \mathdeg$, there is very little sensitivity or correlation between the backscattered PAD and the input pitch angle, with backscattered pitch angle distributions being roughly isotropic between $125\mathdeg$ and $180\mathdeg$, and roughly symmetric around the input pitch angle (solid white line). In this range of input pitch angles the nominal magnetic mirror point is far below the surface of the Earth, and thus nearly all backscatter is produced via collisions with atmospheric neutrals altering an electron's pitch angle sufficiently to escape the atmosphere, accounting for the isotropization of the backscattered distribution. For input angles between approximately $50\mathdeg$ and $70\mathdeg$, we begin to see more sensitivity to input pitch angle with the backscattered PAD starting to skew toward the conjugate of the input pitch angle. This represents the regime where magnetic mirroring is beginning to influence the backscatter ratio and there are fewer atmospheric collisions occurring. Since the magnetic mirror point is increasing in altitude with increased input pitch angles (the mirror altitude goes above ground level at inputs around $60\mathdeg$), the pitch angle at any point in the atmosphere is closer to $90\mathdeg$ for these inputs than they were for the more field aligned inputs. Thus, it takes fewer collisions to adjust their trajectory to an upgoing direction, resulting in less pitch angle diffusion. This also correlates with the region of input pitch angles where backscattered energy begins to dramatically increase (see Figure \ref{figure:predicted-backscatter}), further implying a reduction in atmospheric collisions in this region. Within a few degrees of the $100$~km mirror point at $67\mathdeg$, magnetic mirroring takes over completely, and these particles never encounter appreciable atmospheric density; thus, the backscattered pitch angle distribution is a nearly-perfect delta function about the magnetic conjugate of the input angle, lying directly on the $\alpha_\text{in} = \alpha_\text{out}$ line. We also note that the backscattered PAD does not depend much on energy, except in the approximately $60\mathdeg$ to $65\mathdeg$ region, where there is slightly more atmospheric scattering for the high energy beam than the low energy beam, potentially due to the deeper atmospheric penetration of high energy particles owing to their smaller angular deflections during collisions with neutrals.
+
+Next, we observe the pattern of particle movement between regions. A particle that starts in the trapped region and is backscattered into the anti-loss cone is called ``untrapped'', and a particle starting in the loss cone and backscattering into the trapped region is called ``retrapped''. Figure \ref{figure:backscattered-pads} shows that there is negligible retrapping and untrapping in our simulation, with the vast majority of particles remaining in the region they started in (either the trapped region or the loss/anti-loss cone). There is a minor energy dependence to this observation, with the cutoff point varying by about $5\mathdeg$ between the $63$~keV input and the $6.5$~MeV input. This energy dependence is consistent with previous work \cite{marshall2018}. Moreover, we conclude that this predicts that using in-situ measurements of loss cone and anti-loss cone fluxes as a proxy measurement for precipitating and backscattered fluxes respectively is highly accurate.
+
+The pitch angle distributions of backscattered electron beams has also been reported in \citeA{cotts2011, marshall2018}, and \citeA{berland2023}. The pitch angle distributions reported in \citeA{cotts2011} and \citeA{marshall2018} (Figure 3 in both papers) show a very similar trend to our results, with field-aligned inputs having isotropized backscatter with a rapid transition to a delta function near the $100$~km loss cone edge, with a slight energy dependence. \citeA{berland2023} predicts different pitch angle distributions (Figure 7 in their paper) that do not approach delta functions near the loss cone edge. This likely indicates a magnetic field configuration in their simulation that does not include magnetic mirroring.
+
+Overall, we find that our simulation work agrees with previous modelling efforts and has been validated with in-situ data from the ELFIN mission.
+
+
+\section{Conclusions}
+Backscatter is an important part of the interconnected atmosphere-ionosphere-magnetosphere system. In this paper, we have used in-situ data from the ELFIN satellites to constrain EPP backscatter rates and have found that the backscatter ratio of precipitating electrons is primarily a function of the strength of loss cone filling. Backscatter rates were at or below $10\%$ for the strongest filling of the loss cone ($J_\text{prec}/J_\text{trap} > 1$), increasing up to approximately $60\%$ during periods with little to no loss cone filling. This variation is attributed to the pitch angle dependence of backscatter rates, with strong loss cone filling representing the backscatter rates deep in the loss cone and weak loss cone filling representing the backscatter rates near the edge of the loss cone.
+
+We then introduced an updated EPP backscatter model which was used to simulate all ELFIN data that was used in the backscatter analysis. This model showed no systemic biases. There is noticeable spread in its predictions of backscatter compared to ELFIN that we attribute to the highly-sensitive nature of backscatter dynamics near the loss cone edge in combination with limitations of the ELFIN field of view, as it is unable to resolve the loss cone edge at the characteristic pitch angle scale over which backscatter rates change, typically a few degrees or less at LEO.
+
+Finally, we used our precipitation model to characterize the sensitivities and pitch angle distributions of backscatter. We found that backscatter is generally much more sensitive to input pitch angle than input energy, as previous work has shown. We found that backscatter is dominated by atmospheric interactions at more field aligned pitch angles, which isotropizes the backscattered pitch angle distribution in the anti-loss cone. In the region near the loss cone angle, magnetic mirroring begins to dominate over atmospheric interactions, leading to a backscattered pitch angle distribution that trends towards a delta function as the input pitch angle approaches the trapped region. We also found that particles that start in the trapped region are almost exclusively backscattered in the trapped region, and particles that start in the loss cone are almost exclusively backscattered in the anti-loss cone. These results suggest that very few interactions occur above $100$~km for these particle energies. From these results, we conclude that measured fluxes in the loss cone and anti-loss cone are good proxies for precipitating and backscattered populations respectively when measuring in-situ particle distributions.
+
+\subsection{Caveats and Future Work}
+The primary limitation of our model-data comparison is a lack of high-resolution data in sensitive regions of the pitch angle distribution, i.e. very near the loss cone, where resolution on the order of one degree is necessary to accurately characterize the precipitating and trapped populations. This limitation could possibly be avoided through the use of a fitting scheme. Such a scheme would utilize the recorded pitch angle and energy distribution and make an assumption for the driver of the precipitation. This driver could then be fed to a set of lookup tables containing archetypal pitch angle distributions for that driver. For example, Figure 3 in \citeA{capannolo2023} shows physics-based pitch angle distributions for EMIC-driven precipitation measured on ELFIN. These pitch angle curves could then be fitted to ELFIN's recorded flux and sampled at an arbitrarily high resolution. By predicting the shape of the pitch angle distribution in the sensitive region near the loss cone edge rather than assuming a stepped distribution based on the measured flux, we may recover a more accurate prediction of backscatter. This, however, introduces other uncertainties through the incorporation of other models to assume an underlying pitch angle distribution.
+
+It is also possible to interpolate our backscatter lookup tables between nearby simulation runs to obtain backscattered particle distributions on a higher-resolution grid than the beams we calculated, as done in \citeA{cotts2011}. Given the smooth variance of the backscatter parameters presented in this paper, interpolation would be a reasonable approach to produce a higher-fidelity backscatter model without excessive computational effort. In the trapped region, this interpolation would likely be as simple as assuming pure adiabatic mirroring at the conjugate pitch angle to the input angle, while a more complicated scheme would be required for the loss and anti-loss cones.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% DATA SECTION and ACKNOWLEDGMENTS
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section*{Open Research Section}
+ELFIN data is available for free at \url{https://data.elfin.ucla.edu/ela/}. Geant4 is available for free from \url{https://geant4.web.cern.ch/download/11.3.2.html}. The Geant4 code used to generate lookup tables is available for free at \url{https://github.com/julia-claxton/g4epp-source/tree/main}. The backscatter lookup tables generated by the Geant4 simulation are available for free at \todo{lookup tables zenodo}. All code used to perform the analysis and generate figures, as well as the list of ELFIN events used in the analysis, is available for free at \todo{project repo}.
+
+\acknowledgments
+% Enter acknowledgments here. This section is to acknowledge funding, thank colleagues, enter any secondary affiliations, and so on.
+The authors acknowledge the Ethan Tsai and the ELFIN team for providing data and technical support, the Julia programming language team \cite{julia-language} for the use of the Julia language, the SpacePy Python package \cite{spacepy2, spacepy1} for the use of their tools, and University of Colorado Research Computing for the use of their high-performance computing resources and assistance in troubleshooting.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% REFERENCES and BIBLIOGRAPHY
+%
+\bibliography{citations}
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

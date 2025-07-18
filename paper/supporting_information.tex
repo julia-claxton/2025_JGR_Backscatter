@@ -1,0 +1,160 @@
+% Document type
+\documentclass[10pt]{article}
+
+% Custom commands
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1}]}}
+\newcommand{\e}[1]{\cdot 10^{#1}}
+\newcommand{\hugeskip}{\bigskip\bigskip\bigskip}
+\newcommand{\dott}{$\cdots\cdots$}
+\newcommand{\del}{\bm{\nabla}}
+\newcommand{\laplacian}{\nabla^2}
+\newcommand{\cross}{\times}
+\newcommand{\dd}[1]{\frac{d}{d{#1}}}
+\newcommand{\tdd}[1]{\tfrac{d}{d{#1}}}
+\newcommand{\pp}[1]{\frac{\partial}{\partial{#1}}}
+\newcommand{\tpp}[1]{\tfrac{\partial}{\partial{#1}}}
+\newcommand{\arccsc}{\text{arccsc}}
+\newcommand{\arcsec}{\text{arcsec}}
+\newcommand{\arccot}{\text{arccot}}
+\newcommand{\longdel}{\biggl< \frac{\partial}{\partial x}, \frac{\partial}{\partial y}, \frac{\partial}{\partial z} \biggr>}
+\newcommand{\si}{\text{s}}
+\newcommand{\co}{\text{c}}
+\newcommand{\unit}[1]{\hspace{.2em}\bm{\hat{#1}}}
+\newcommand{\slantparallel}{\mathbin{\!/\mkern-5mu/\!}}
+\newcommand{\mathdeg}{^\circ}
+
+\renewcommand{\thefootnote}{\roman{footnote}} % Make footnotes numbered
+
+\newcommand{\dataselectiontime}{$201$ hours ($254,838$ spacecraft spins) }
+\newcommand{\backscattertime}{$26$ hours ($33,366$ spacecraft spins) }
+
+% Package includes
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb,amsmath,mathtools,amsthm,amscd,mathrsfs,graphicx,color} % Basics
+\usepackage[cmtip,all,matrix,arrow,tips,curve]{xy} % For drawing diagrams
+\usepackage[active]{srcltx} % Allows jumping from code <-> pdf
+\usepackage{mathpazo} % Changes text font
+\usepackage{newtxmath} % Changes math font
+\usepackage{anyfontsize} % Fixes issues with font size
+\usepackage{setspace}\onehalfspacing % Sets line spacing
+\usepackage[skip=1em]{parskip} % Sets paragraph spacing
+\usepackage[usenames,dvipsnames]{xcolor} % Provides color names
+\usepackage[hyphens]{url} % Allows \url{} command for hyperlinks
+\usepackage[bottom]{footmisc} % Forces footnotes to bottom of the page
+\usepackage{cancel} % Provides cancellation symbol in equations
+\usepackage{verbatim} % Provides comment environment and printing of literal text
+\usepackage{bm} % For bold symbols
+\usepackage{wrapfig} % Allows text to wrap around figures
+\usepackage[labelfont=bf, justification=centering]{caption} % Makes figure labels bold and captions centered
+\usepackage{float} % Allows forcing figure positions
+\usepackage{tikz} % Allows creation of native figures
+\usepackage{hhline} % Provides double hlines for tables
+\usepackage{enumitem} % Allows for [nosep] and [noitemsep] in enumerate environment
+
+% Colors
+\definecolor{dark}{rgb}{0.77, 0.73, 0.675}
+
+% Set up margins
+\usepackage[headheight=65pt]{geometry}
+\geometry{
+  top = 1 in,
+  inner = 1 in,
+  outer = 1 in,
+  bottom = 1 in,
+  headheight = 3ex,
+  headsep = 4ex,
+}
+
+% Set up header
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Julia Claxton 2025}
+\chead{Supporting Information}
+\rhead{}
+\renewcommand{\headrulewidth}{1pt}
+
+% Set up hyperlinks
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks,
+  citecolor = black,
+  filecolor = black,
+  linkcolor = black,
+  urlcolor = blue
+}
+
+% Box parameters
+\setlength\fboxsep{.23cm}
+\setlength\fboxrule{.02cm}
+
+% Make sections un-numbered and no paragraph indents
+\setcounter{secnumdepth}{0}
+\setlength{\parindent}{0em}
+%\setlength{\mathindent}{2em} % only if \documentclass[fleqn]{article} is used
+
+% No separator line above footnotes
+\renewcommand{\footnoterule}{}
+
+% Show/hide labels
+\usepackage[nolabel]{showlabels}
+  % right
+  % left
+  % nolabel
+
+% Bibliography options
+\usepackage[bibstyle = nature]{biblatex} % Imports biblatex package
+  % authortitle
+  % draft
+\addbibresource{citations.bib} % Import the bibliography file
+
+% Make equations labelled as 1.1, 1.2, 2.3, etc.
+\numberwithin{equation}{section}
+
+% Set up title
+\title{\doctitle}
+\author{\me}
+\date{}
+
+\begin{document}
+In this document we present a power law fit for backscatter ratio as a function of loss cone filling derived from ELFIN data. The data we are fitting to is shown in Figure \ref{figure:backscatter-vs-precipitation} (reproduced from manuscript). For this fit, we will only consider the case with low precipitating fluxes excluded, shown in the right panel.
+
+\begin{figure}[H]
+  \centering
+  \noindent\includegraphics[width=0.9\textwidth]{figures/backscatter_vs_precipitation_ratio.png}
+  \caption{
+    Number backscatter ratio vs. loss cone filling strength derived from \backscattertime of ELFIN data. Any measurement of backscatter ratio with absolute uncertainty greater than $\sigma \approx 0.025$ was discarded. Left: Results all eligible ELFIN data (see manuscript). Right: Measurements with precipitating flux less than $10^{3.5}$~electrons-cm$^{-2}$-s$^{-1}$ removed. Energy backscatter ratio has a similar pattern to number backscatter ratio and is not shown for brevity.
+  }
+  \label{figure:backscatter-vs-precipitation}
+\end{figure}
+
+First we find the median backscatter ratio for every $J_\text{precip}/J_\text{trap}$ bin. This series, along with the $25$th and $75$th percentile of the $r_N$ distribution for each $J_\text{precip}/J_\text{trap}$ bin, is shown in Figure \ref{figure:curves} below.
+
+\begin{figure}[H]
+  \centering
+  \noindent\includegraphics[width=0.9\textwidth]{figures/supplemental_curves.png}
+  \caption{
+    Median backscatter (black line) as well as the $25$th and $75$ percentile (grey ribbon below and above, respectively) as a function of precipitation strength. Left panel shows the number backscatter ratio $r_N$, right panel shows the energy backscatter $r_E$.
+  }
+  \label{figure:curves}
+\end{figure}
+
+We then fit a power law to each curve using a least-squares regression. The formulae for these fits and their coefficient of determination $R^2$ are given below.
+
+\begin{align*}
+  r_N &= 0.049846675 \cdot \left( \frac{J_\text{precip}}{J_\text{trap}} \right)^{-0.69318138} & R^2 = 0.9764 \\
+  r_E &= 0.042889591 \cdot \left( \frac{J_\text{precip}}{J_\text{trap}} \right)^{-0.76185648} & R^2 =  0.9842
+\end{align*}
+
+These fits are plotted over the data in Figure \ref{figure:curvefit} below.
+
+\begin{figure}[H]
+  \centering
+  \noindent\includegraphics[width=0.9\textwidth]{figures/supplemental_curvefit.png}
+  \caption{
+    Median backscatter rates (grey line with dots) at a variety of loss cone filling levels with a power law curvefit (black line) overlaid. Left: Number backscatter ratio as a function of loss cone filling. Right: Energy backscatter ratio as a fucntion of loss cone filling.
+  }
+  \label{figure:curvefit}
+\end{figure}
+
+
+\end{document}

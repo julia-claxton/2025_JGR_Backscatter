@@ -1,0 +1,27 @@
+# Raw data files
+*.cdf
+
+# OS crap
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.icloud
+
+# Symlinks to my other libraries
+/code/Julia_ELFIN_Tools
+/code/G4EPP_2.0
+
+# LaTeX auxililiary files
+*.aux
+*.fdb_latexmk
+*.fls
+*.gz
+*.log
+*.bbl
+*.blg
+*.bcf
+*.run.xml
