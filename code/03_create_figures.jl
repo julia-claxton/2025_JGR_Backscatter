@@ -149,8 +149,8 @@ function figure_filling_vs_backscatter()
 end
 
 function figure_beam_weighting()
-    count_clims = (0, 4.5)
-    nflux_clims = (3, 7)
+    count_clims = (0, 3.5)
+    nflux_clims = (2, 6)
 
     data = npzread("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz")
     avg_pitch_angles = data["avg_pitch_angles"]
@@ -164,6 +164,7 @@ function figure_beam_weighting()
     beam_weights = data["beam_weights"]
     backscatter_counts = data["backscatter_counts"]
     corrected_backscatter_counts = data["corrected_backscatter_counts"]
+    cull_idxs = data["cull_idxs"]
 
     plot_distribution(avg_energies, avg_pitch_angles, data_nfluence, :magma)
     plot!(
@@ -194,20 +195,18 @@ function figure_beam_weighting()
 
         colormap = :ice,
         colorbar_title = "Log10 Electron Count, #",
-        clims = (1, 5.75),
+        clims = count_clims .+ 1,
         leftmargin = 10mm
     )
     p3 = plot!()
 
-
-    plot_distribution(avg_energies, avg_pitch_angles, corrected_backscatter_counts, :ice)
+    plot_distribution(avg_energies, avg_pitch_angles[.!cull_idxs], corrected_backscatter_counts[:, .!cull_idxs], :ice)
     plot!(
         title = "4) Look Up Backscatter, Azimuth De-Scale",
         colorbar_title = "Log10 Electron Fluence, #",
         clims = count_clims
     )
     p4 = plot!()
-
 
     plot(p1, p2, p3, p4,
         layout = (2,2),
@@ -236,7 +235,7 @@ function figure_elfin_backscatter_vs_nflux()
         ylabel = "Number Backscatter Ratio, # ALC / # LC",
         
         colorbar = false,
-        colorbar_title = "Log10 Time, s",
+        colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
         clims = (1, 3),
 
@@ -251,7 +250,7 @@ function figure_elfin_backscatter_vs_nflux()
         ylabel = "Energy Backscatter Ratio, keV ALC / keV LC",
         
         colorbar = true,
-        colorbar_title = "Log10 Time, s",
+        colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
         clims = (1, 3),
 
@@ -294,7 +293,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
         yticks = 0:.1:1.1,
         yminorticks = 5,
 
-        colorbar_title = "Log10 Time, s",
+        colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
         clims = (1, 3),
         colorbar = false,
@@ -322,7 +321,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
         yticks = 0:.1:1,
         yminorticks = 5,
 
-        colorbar_title = "Log10 Time, s",
+        colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
         clims = (1, 3),
 
@@ -655,7 +654,7 @@ function residual_1d_histogram(bin_edges, frequencies)
         xminorgrid = true,
         xscale = :log10,
 
-        ylabel = "Time, s",
+        ylabel = "Occurrences, # Data Segments",
         ylims = (0, 1.05max(frequencies...)),
 
         leftmargin = 5mm,
@@ -731,13 +730,25 @@ function plot_distribution(e_means, pa_means, values, colormap)
         leftmargin = 5mm,
         rightmargin = 5mm,
 
-        background_color_inside = :black,
-        background_color_outside = :transparent,
+        background = :white,
+        #background_color_outside = :transparent,
         framestyle = :box,
         tickdirection = :out,
         thickness_scaling = .8,
         size = (1.3, 1) .* 400,
         dpi = 400
+    )
+    vline!([67],
+        label = false,
+        linecolor = RGB(0xff006a),
+        style = :solid,
+        linewidth = 2.5
+    )
+    vline!([113],
+        label = false,
+        linecolor = RGB(0xff006a),
+        style = :dash,
+        linewidth = 2.5
     )
     box_aspect!(1)
 end
@@ -979,17 +990,17 @@ Figure Generation
 ======================================
 """
 
-#supplemental_ribbon()
-supplemental_curvefit()
-error()
-
-
 figure_elfin_data()
 figure_data_coverage()
+
 figure_elfin_backscatter_vs_nflux()
 figure_elfin_backscatter_vs_precipitation_ratio()
 figure_filling_vs_backscatter()
+
 figure_beam_weighting()
 figure_1_to_1_event_simulation_residuals()
 figure_predicted_backscatter()
 figure_backscattered_pads()
+
+supplemental_ribbon()
+supplemental_curvefit()

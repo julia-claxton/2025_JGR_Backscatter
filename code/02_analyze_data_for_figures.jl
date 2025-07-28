@@ -19,6 +19,7 @@ include("$(TOP_LEVEL)/code/G4EPP_2.0/Frontend_Functions.jl")
 function save_backscatter_figure_data(;
     backscatter_ratio_maximum_absolute_error = .025
     )
+    print("Saving backscatter statistics... ")
     # Load data
     data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation.csv", ',', skipstart = 1)
     
@@ -34,18 +35,18 @@ function save_backscatter_figure_data(;
     MLT_stop = data[:,7]
 
     # Data-derived quantities
-    loss_cone_eflux = data[:,8] ./ (Δt .* ELFIN_EPD_AREA)
-    loss_cone_nflux = data[:,9] ./ (Δt .* ELFIN_EPD_AREA)
+    loss_cone_eflux = data[:,8] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    loss_cone_nflux = data[:,9] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
 
-    trapped_eflux = data[:,10] ./ (Δt .* ELFIN_EPD_AREA)
-    trapped_nflux = data[:,11] ./ (Δt .* ELFIN_EPD_AREA)
+    trapped_eflux = data[:,10] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    trapped_nflux = data[:,11] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
 
-    anti_loss_cone_eflux = data[:,12] ./ (Δt .* ELFIN_EPD_AREA)
-    anti_loss_cone_nflux = data[:,13] ./ (Δt .* ELFIN_EPD_AREA)
+    anti_loss_cone_eflux = data[:,12] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    anti_loss_cone_nflux = data[:,13] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
 
     # Simulation quantities
-    sim_anti_loss_cone_eflux = data[:,17] ./ (Δt .* ELFIN_EPD_AREA)
-    sim_anti_loss_cone_nflux = data[:,18] ./ (Δt .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_eflux = data[:,17] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_nflux = data[:,18] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
 
     # Derived quantities
     energy_backscatter_ratio = anti_loss_cone_eflux ./ loss_cone_eflux
@@ -91,11 +92,11 @@ function save_backscatter_figure_data(;
     )
 
     # Create 2D histograms of backscatter vs. loss cone flux for data and simulation
-    e_frequencies = exact_2dhistogram(loss_cone_nflux[e_idxs_to_analyze], energy_backscatter_ratio[e_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges, weights = Δt[e_idxs_to_analyze])
-    n_frequencies = exact_2dhistogram(loss_cone_nflux[n_idxs_to_analyze], number_backscatter_ratio[n_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges, weights = Δt[n_idxs_to_analyze])
+    e_frequencies = exact_2dhistogram(loss_cone_nflux[e_idxs_to_analyze], energy_backscatter_ratio[e_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges)
+    n_frequencies = exact_2dhistogram(loss_cone_nflux[n_idxs_to_analyze], number_backscatter_ratio[n_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges)
 
-    sim_e_frequencies = exact_2dhistogram(loss_cone_nflux[e_idxs_to_analyze], sim_energy_backscatter_ratio[e_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges, weights = Δt[e_idxs_to_analyze])
-    sim_n_frequencies = exact_2dhistogram(loss_cone_nflux[n_idxs_to_analyze], sim_number_backscatter_ratio[n_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges, weights = Δt[n_idxs_to_analyze])
+    sim_e_frequencies = exact_2dhistogram(loss_cone_nflux[e_idxs_to_analyze], sim_energy_backscatter_ratio[e_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges)
+    sim_n_frequencies = exact_2dhistogram(loss_cone_nflux[n_idxs_to_analyze], sim_number_backscatter_ratio[n_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges)
 
     # Create copy of these histograms that is normalized to integrate to unity at every flux level (1st dimension)
     normalized_n_frequencies = normalize_1st_dimension_to_unity(backscatter_bin_edges, n_frequencies)
@@ -130,8 +131,8 @@ function save_backscatter_figure_data(;
     JoverJ90_bin_edges = 10.0 .^ (-4:.1:1)
     backscatter_bin_edges = -.025:.025:2
 
-    energy_frequencies = exact_2dhistogram(JoverJ90[e_idxs_to_analyze], energy_backscatter_ratio[e_idxs_to_analyze], JoverJ90_bin_edges, backscatter_bin_edges, weights = Δt[e_idxs_to_analyze])
-    number_frequencies = exact_2dhistogram(JoverJ90[n_idxs_to_analyze], number_backscatter_ratio[n_idxs_to_analyze], JoverJ90_bin_edges, backscatter_bin_edges, weights = Δt[n_idxs_to_analyze])
+    energy_frequencies = exact_2dhistogram(JoverJ90[e_idxs_to_analyze], energy_backscatter_ratio[e_idxs_to_analyze], JoverJ90_bin_edges, backscatter_bin_edges)
+    number_frequencies = exact_2dhistogram(JoverJ90[n_idxs_to_analyze], number_backscatter_ratio[n_idxs_to_analyze], JoverJ90_bin_edges, backscatter_bin_edges)
     
     # Cut off low fluxes to prove a point
     flux_cutoff = 10.0 ^ 3.25
@@ -159,27 +160,30 @@ function save_backscatter_figure_data(;
     energy_residuals = sim_anti_loss_cone_eflux ./ anti_loss_cone_eflux
 
     residual_bin_edges = 10.0.^(-2.5:.05:2.5)
-    energy_residual_frequencies = exact_1dhistogram(energy_residuals[e_idxs_to_analyze], residual_bin_edges, weights = Δt[e_idxs_to_analyze])
-    number_residual_frequencies = exact_1dhistogram(number_residuals[n_idxs_to_analyze], residual_bin_edges, weights = Δt[n_idxs_to_analyze])
+    energy_residual_frequencies = exact_1dhistogram(energy_residuals[e_idxs_to_analyze], residual_bin_edges)
+    number_residual_frequencies = exact_1dhistogram(number_residuals[n_idxs_to_analyze], residual_bin_edges)
         
     backscatter_bin_spacing = .025
     backscatter_bin_edges = 0:backscatter_bin_spacing:2
     
-    energy_backscatter_ratio_frequencies = exact_1dhistogram(energy_backscatter_ratio[e_idxs_to_analyze], backscatter_bin_edges, weights = Δt[e_idxs_to_analyze])
-    number_backscatter_ratio_frequencies = exact_1dhistogram(number_backscatter_ratio[n_idxs_to_analyze], backscatter_bin_edges, weights = Δt[n_idxs_to_analyze])
+    energy_backscatter_ratio_frequencies = exact_1dhistogram(energy_backscatter_ratio[e_idxs_to_analyze], backscatter_bin_edges)
+    number_backscatter_ratio_frequencies = exact_1dhistogram(number_backscatter_ratio[n_idxs_to_analyze], backscatter_bin_edges)
     
-    sim_energy_backscatter_ratio_frequencies = exact_1dhistogram(sim_energy_backscatter_ratio[e_idxs_to_analyze], backscatter_bin_edges, weights = Δt[e_idxs_to_analyze])
-    sim_number_backscatter_ratio_frequencies = exact_1dhistogram(sim_number_backscatter_ratio[n_idxs_to_analyze], backscatter_bin_edges, weights = Δt[n_idxs_to_analyze])
+    sim_energy_backscatter_ratio_frequencies = exact_1dhistogram(sim_energy_backscatter_ratio[e_idxs_to_analyze], backscatter_bin_edges)
+    sim_number_backscatter_ratio_frequencies = exact_1dhistogram(sim_number_backscatter_ratio[n_idxs_to_analyze], backscatter_bin_edges)
 
-    println("All data analyzed")
+
+    println("\nAll data analyzed")
     @show length(Δt) * 3
     @show sum(Δt)/3600
     @show mean(Δt)
-
+    
     println("\nData for bakscatter assessment")
     @show sum(n_idxs_to_analyze) * 3
     @show sum(Δt[n_idxs_to_analyze])/3600
     @show mean(Δt[n_idxs_to_analyze])
+    println()
+
 
     # Create histogram of data backscatter ratio vs. sim backscatter ratio
     comparison_sim_backscatter_edges = 0:.025:1
@@ -210,9 +214,11 @@ function save_backscatter_figure_data(;
         comparison_number_frequencies = comparison_number_frequencies,
         comparison_energy_frequencies = comparison_energy_frequencies
     )
+    println("Done")
 end
 
 function save_example_events()
+    print("Saving example events... ")
     # Get data
     data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation.csv", ',', skipstart = 1)
     start = DateTime.(data[:,1])
@@ -266,11 +272,12 @@ function save_example_events()
         between_rn = between_rn,
         between_lc = between_lc
     )
+    println("Done")
 end
 
 function save_g4epp_predictions()
+    print("Saving G4EPP backscatter characteristics... ")
     # Get backscatter statistics
-    #initialize_g4epp()
     beam_energies, beam_pitch_angles = _get_beam_locations()
     beam_locations = collect(zip(beam_energies, beam_pitch_angles))
 
@@ -318,9 +325,11 @@ function save_g4epp_predictions()
         energy_backscatter_fine_grid = energy_backscatter_fine_grid,
         number_backscatter_fine_grid = number_backscatter_fine_grid
     )
+    println("Done")
 end
 
 function save_beam_weighting_procedure()
+    print("Saving beam weighting data... ")
     # Get event
     event = create_event(DateTime("2021-03-06T07:05:05"), DateTime("2021-03-06T07:05:15"), "B", maximum_relative_error = 0.5)
     ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # MeV
@@ -342,7 +351,7 @@ function save_beam_weighting_procedure()
     [backscatter_input_distribution[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
     # Cull non-loss cone inputs
-    lc_idxs = 0 .< event.avg_pitch_angles .< event.avg_loss_cone_angle - (5 + (ELFIN_EPD_FOV/2))
+    lc_idxs = 0 .< event.avg_pitch_angles .< event.avg_loss_cone_angle - (ELFIN_EPD_FOV/2)
     culled_backscatter_input_distribution = copy(backscatter_input_distribution)
     culled_backscatter_input_distribution[:, .!lc_idxs] .= 0
 
@@ -358,6 +367,10 @@ function save_beam_weighting_procedure()
     corrected_backscatter_counts = copy(backscatter_counts)
     [corrected_backscatter_counts[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
+    # Cull parts we aren't comparing
+    cull_below = event.avg_anti_loss_cone_angle + (ELFIN_EPD_FOV/2)
+    cull_idxs = event.avg_pitch_angles .< cull_below
+
     npzwrite("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz",
         avg_pitch_angles = event.avg_pitch_angles,
         avg_energies = event.energy_bins_mean,
@@ -369,11 +382,14 @@ function save_beam_weighting_procedure()
         beam_pitch_angles = beam_pitch_angles,
         beam_weights = beam_weights,
         backscatter_counts = backscatter_counts,
-        corrected_backscatter_counts = corrected_backscatter_counts
+        corrected_backscatter_counts = corrected_backscatter_counts,
+        cull_idxs = cull_idxs
     )
+    println("Done")
 end
 
 function save_backscattered_pads()
+    print("Saving simulated backscatter PADs... ")
     input_pitch_angles = float([0:5:60..., 61:69..., 70:1:90...])
     input_pa_edges = [-2.5:5:57.5..., 60.5:1:69.5..., 70.5:1:90.5...]
 
@@ -395,9 +411,11 @@ function save_backscattered_pads()
         high_energy = high_energy,
         high_energy_pad_weights = high_energy_pad_weights
     )
+    println("Done")
 end
 
 function save_supplemental_curvefit_data()
+    print("Saving supplemental curvefit... ")
     data = npzread("$(TOP_LEVEL)/data/figure_data/precipitation_ratio_vs_backscatter.npz")
 
     JoverJ90_bin_edges = data["JoverJ90_bin_edges"]
@@ -483,6 +501,7 @@ function save_supplemental_curvefit_data()
     results["number_r2"] = 1 - (number_ss_residual / number_ss_total)
 
     npzwrite("$(TOP_LEVEL)/data/figure_data/supplemental_curvefit.npz", results)
+    println("Done")
 end
 
 function get_pads_over_input_pitch_angle(input_pitch_angles, pad_bin_edges, input_energy_kev)
@@ -523,11 +542,12 @@ function quantile_index(v, q)
     idx = findfirst(normalized_cdf .> q)
     return idx
 end
-#=
+
 save_backscatter_figure_data()
 save_example_events()
 save_g4epp_predictions()
 save_beam_weighting_procedure()
 save_backscattered_pads()
-=#
 save_supplemental_curvefit_data()
+
+# 2 occurrences of _backup_ELFIN_backscatter_and_simulationatter_and_simulation !!!!!

@@ -19,7 +19,7 @@ function write_elfin_lifetime_backscatter_data(;
     println("Calculating backscatter statistics and simulating events over ELFIN lifetime (Δidx = $(slice_length_idx))")
     dates, sats = all_elfin_science_dates_and_satellite_ids()
     for i in eachindex(dates)
-        print_progress_bar(i/length(dates))
+        print_progress_bar(i/length(dates), bar_length = 40)
         fullday_event = create_event(dates[i], sats[i])
         if fullday_event == nothing; continue; end
         if fullday_event.data_reliable == false; continue; end
@@ -60,8 +60,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
 
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = 5 + 11.25 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
-        # ELFIN EPD FOV = 20º x 20º
+    cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)
