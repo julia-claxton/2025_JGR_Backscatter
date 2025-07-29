@@ -19,7 +19,7 @@ function write_elfin_lifetime_backscatter_data(;
     println("Calculating backscatter statistics and simulating events over ELFIN lifetime (Δidx = $(slice_length_idx))")
     dates, sats = all_elfin_science_dates_and_satellite_ids()
     for i in eachindex(dates)
-        print_progress_bar(i/length(dates), bar_length = 40)
+        print_progress_bar(i/length(dates), bar_length = 50)
         fullday_event = create_event(dates[i], sats[i])
         if fullday_event == nothing; continue; end
         if fullday_event.data_reliable == false; continue; end
