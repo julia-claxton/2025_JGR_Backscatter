@@ -237,7 +237,7 @@ function figure_elfin_backscatter_vs_nflux()
         colorbar = false,
         colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
-        clims = (0, 2),
+        #clims = (0, 2),
 
         background_color_inside = :black
     )
@@ -252,7 +252,7 @@ function figure_elfin_backscatter_vs_nflux()
         colorbar = true,
         colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
-        clims = (0, 2),
+        #clims = (0, 2),
 
         background_color_inside = :black
     )
@@ -989,6 +989,11 @@ end
 Figure Generation
 ======================================
 """
+
+figure_elfin_backscatter_vs_nflux()
+
+error()
+
 
 figure_elfin_data()
 figure_data_coverage()
