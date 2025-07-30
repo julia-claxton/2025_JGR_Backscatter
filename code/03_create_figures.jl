@@ -990,11 +990,6 @@ Figure Generation
 ======================================
 """
 
-figure_elfin_backscatter_vs_nflux()
-
-error()
-
-
 figure_elfin_data()
 figure_data_coverage()
 
