@@ -35,7 +35,11 @@ function figure_elfin_data()
     bottom_plots = []
     for i in idxs_to_plot
         pad_heatmap(event, i)
-        plot!(colorbar = false)
+        plot!(
+            colorbar_title = "Log10 Electron Flux\n# s⁻¹ cm⁻² str⁻¹ MeV⁻¹",
+            colorbar = false,
+            clims = (3, 6)
+        )
         push!(bottom_plots, plot!())
     end
 
@@ -65,14 +69,16 @@ function figure_data_coverage()
     L_bin_edges = data["L_bin_edges"]
     coverage = data["coverage"]
 
-    heatmap(MLT_bin_edges_rad, L_bin_edges, coverage'./60,
+    to_plot = coverage'
+    to_plot = replace(to_plot, -Inf => -100) # Make regions of no coverage black rather than transparent
+    heatmap(MLT_bin_edges_rad, L_bin_edges, to_plot,
         projection = :polar,
         axis = false,
 
         ylims = (0, 10),
 
-        colorbar_title = "Coverage Duration, min",
-        clims = (0, 25),
+        colorbar_title = "# Data Segments",
+        clims = (0, 150),
         colormap = :ice,
 
         size = (1.3, 1) .* 500,
@@ -280,6 +286,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
     trimmed_energy_frequencies = data["trimmed_energy_frequencies"]
     trimmed_number_frequencies = data["trimmed_number_frequencies"]
 
+    clims = (0, 2.3)
     heatmap(log10.(JoverJ90_bin_edges), backscatter_bin_edges, log10.(number_frequencies'),
         title = "All Eligible Data",
     
@@ -295,7 +302,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
 
         colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
-        clims = (1, 3),
+        clims = clims,
         colorbar = false,
 
         leftmargin = 10mm,
@@ -323,7 +330,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
 
         colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
-        clims = (1, 3),
+        clims = clims,
 
         leftmargin = 5mm,
         rightmargin = 5mm,
@@ -731,7 +738,7 @@ function plot_distribution(e_means, pa_means, values, colormap)
         rightmargin = 5mm,
 
         background = :white,
-        #background_color_outside = :transparent,
+        grid = false,
         framestyle = :box,
         tickdirection = :out,
         thickness_scaling = .8,
@@ -880,8 +887,8 @@ function plot_earth!()
 end
 
 function generate_pad_plot(pitch_angles, pad, α_lc, α_alc, rn; annotate = false)
-    upper_clim_Δ = -.35
-    lower_clim_Δ = -2.25
+    upper_clim_Δ = -.1
+    lower_clim_Δ = -2.5
     heatmap(pitch_angles, example_event().energy_bins_mean, log10.(pad),
         xlabel = "Pitch Angle, deg",
         xlims = (0, 180),

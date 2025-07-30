@@ -60,17 +60,20 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
 
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = 5 + (ELFIN_EPD_FOV / 2) # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    #cone_standoff_angle = 5 + (ELFIN_EPD_FOV / 2) # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)
         trapped_limits = (α_lc, α_alc)
         anti_loss_cone_limits = (α_alc + cone_standoff_angle, 180)
+        downgoing_limits = (0, 90)
     else 
         # Southern hemisphere
         loss_cone_limits = (α_lc + cone_standoff_angle, 180)
         trapped_limits = (α_alc, α_lc)
         anti_loss_cone_limits = (0, α_alc - cone_standoff_angle)
+        downgoing_limits = (90, 180)
     end
 
     # Get data-derived values
@@ -128,7 +131,8 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     # Flip to northern hemisphere for G4EPP if needed
     lc_idxs = loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< loss_cone_limits[2]
     alc_idxs = anti_loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< anti_loss_cone_limits[2]
-    
+    downgoing_idxs = downgoing_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< downgoing_limits[2]
+
     if α_lc > 90
         adiabatically_swap_hemisphere!(backscatter_input_distribution)
         lc_idxs = reverse(lc_idxs)
@@ -147,7 +151,8 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     # Without this, we get overestimation on the order of 20x. This is probably because backscatter is so incredibly
     # sensitive near the loss cone edge, thus if a 63º electron is snapped to the 68º beam due to bin size, that's a
     # change from 50% backscatter to 100%.
-    backscatter_input_distribution.values[:, .!lc_idxs] .= 0
+    #backscatter_input_distribution.values[:, .!lc_idxs] .= 0
+    backscatter_input_distribution.values[:, .!downgoing_idxs] .= 0
 
     # Simulate backscatter
     backscatter_output_distribution = copy(backscatter_input_distribution)
