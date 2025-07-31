@@ -370,7 +370,7 @@ function save_beam_weighting_procedure()
 
     # Cull parts we aren't comparing
     #cull_below = event.avg_anti_loss_cone_angle + (ELFIN_EPD_FOV/2)
-    cull_below = event.avg_anti_loss_cone_angle
+    cull_below = 90# event.avg_anti_loss_cone_angle
     cull_idxs = event.avg_pitch_angles .< cull_below
 
     @show sum(data_counts[:, .!cull_idxs])
