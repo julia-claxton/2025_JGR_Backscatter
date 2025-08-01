@@ -46,21 +46,21 @@ end
 
 function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, maximum_relative_error)
     # Only accept data with large pitch angle coverage
-    worst_pa_min = max(event.pitch_angles[:,begin]...)
-    worst_pa_max = min(event.pitch_angles[:,end]...)
+    worst_pa_min = max(event.pitch_angles[start_idx:stop_idx, begin]...)
+    worst_pa_max = min(event.pitch_angles[start_idx:stop_idx, end]...)
 
     if worst_pa_min > 15; return; end
     if worst_pa_max < (180-15); return; end
 
     # Reject data segments with multiple spins per timestep
-    if (event.time[stop_idx] + ELFIN_SPIN_PERIOD) - event.time[start_idx] > 10; return; end
+    # if (event.time[stop_idx] + ELFIN_SPIN_PERIOD) - event.time[start_idx] > 10; return; end
 
     # Get loss cone and anti loss cone values
     α_lc = mean(event.loss_cone_angles[start_idx:stop_idx])
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
 
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = 5 + (ELFIN_EPD_FOV / 2) # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    cone_standoff_angle = 0 #5 + (ELFIN_EPD_FOV / 2) # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)
@@ -144,7 +144,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     Ω_G4EPP = 2π * (cosd.(backscatter_input_distribution.pitch_angle_bins_min) .- cosd.(backscatter_input_distribution.pitch_angle_bins_max))
     G4EPP_to_ELFIN_scaling_factor = Ω_elfin_epd ./ Ω_G4EPP
 
-    [backscatter_input_distribution.values[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
+    #[backscatter_input_distribution.values[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
     # Cull inputs outside of the loss cone due to large errors introduced with ELFIN's FOV near the loss cone edge
     # Without this, we get overestimation on the order of 20x. This is probably because backscatter is so incredibly
@@ -159,7 +159,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     backscatter_output_distribution.values = simulate_backscatter(backscatter_input_distribution)
 
     # Convert back to ELFIN FOV
-    [backscatter_output_distribution.values[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
+    #[backscatter_output_distribution.values[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
     
     # Flip back to correct hemisphere if needed
     if α_lc > 90
@@ -175,29 +175,8 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
 
     # Get simulated backscatter count and energy
     sim_alc_number = sum(backscatter_output_distribution.values[:, alc_idxs])
-
-    #=
-    # <debugging>
-    if anti_loss_cone_number > 0
-        heatmap(log10.(data_counts[:,alc_idxs]), clims = (3,5), bg = :black)
-        box_aspect!(2)
-        display(plot!())
-
-        heatmap(log10.(backscatter_output_distribution.values[:,alc_idxs]), clims = (3,5), bg = :black)
-        box_aspect!(2)
-        display(plot!())
-
-        NH = α_lc < 90
-        @show NH
-        @show sim_alc_number / anti_loss_cone_number
-    end
-    # </debugging>
-    =#
-
-
     convert_distribution!(backscatter_output_distribution, "energy")
     sim_alc_energy = sum(backscatter_output_distribution.values[:, alc_idxs])
-
 
     # Write results to file
     event_data = "$(event.time_datetime[start_idx]),$(event.time_datetime[stop_idx]+Microsecond(ELFIN_SPIN_PERIOD*1e6)),$(event.satellite),$(event.L[start_idx]),$(event.L[stop_idx]),$(event.MLT[start_idx]),$(event.MLT[stop_idx])"

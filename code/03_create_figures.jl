@@ -604,7 +604,7 @@ function backscatter_heatmap_plot()
 
         ylabel = "",
         ylims = (0, 1),
-        yticks = 0:.1:1.1,
+        yticks = 0:.1:1,
         yminorticks = 5
     )
     plot!(

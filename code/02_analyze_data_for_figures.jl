@@ -21,7 +21,7 @@ function save_backscatter_figure_data(;
     )
     print("Saving backscatter statistics... ")
     # Load data
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_11.25+5_standoff_both.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/meow.csv", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
@@ -76,8 +76,17 @@ function save_backscatter_figure_data(;
     println("Removed $(sum(Δt[bad_data_idxs])/60) minutes of bad data.\n")
 
     # Filter the data to only what we want to analyze
-    e_idxs_to_analyze = (uncertainty_energy_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) .&& good_data_idxs
-    n_idxs_to_analyze = (uncertainty_number_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) .&& good_data_idxs
+    e_idxs_to_analyze = (
+        (uncertainty_energy_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
+        .&& good_data_idxs
+        .&& (loss_cone_eflux .> 1)
+    )
+    
+    n_idxs_to_analyze = (
+        (uncertainty_number_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
+        .&& good_data_idxs
+        .&& (loss_cone_nflux .> 1)
+    )
 
     # Save data coverage
     MLT_bin_edges = 0:1:24
@@ -220,7 +229,7 @@ end
 function save_example_events()
     print("Saving example events... ")
     # Get data
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_11.25+5_standoff_both.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/meow.csv", ',', skipstart = 1)
     start = DateTime.(data[:,1])
 
     # Get events
@@ -348,7 +357,7 @@ function save_beam_weighting_procedure()
     G4EPP_to_ELFIN_scaling_factor = Ω_elfin_epd ./ Ω_G4EPP
 
     backscatter_input_distribution = copy(data_counts)
-    [backscatter_input_distribution[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
+    #[backscatter_input_distribution[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
     # Cull non-loss cone inputs
     #lc_idxs = 0 .< event.avg_pitch_angles .< event.avg_loss_cone_angle - (ELFIN_EPD_FOV/2)
@@ -366,7 +375,7 @@ function save_beam_weighting_procedure()
     
     # Phase-correct back to ELFIN's view
     corrected_backscatter_counts = copy(backscatter_counts)
-    [corrected_backscatter_counts[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
+    #[corrected_backscatter_counts[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
     # Cull parts we aren't comparing
     #cull_below = event.avg_anti_loss_cone_angle + (ELFIN_EPD_FOV/2)
