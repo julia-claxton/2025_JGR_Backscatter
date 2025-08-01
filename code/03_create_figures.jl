@@ -38,7 +38,7 @@ function figure_elfin_data()
         plot!(
             colorbar_title = "Log10 Electron Flux\n# s⁻¹ cm⁻² str⁻¹ MeV⁻¹",
             colorbar = false,
-            clims = (3, 6)
+            clims = (2.5, 6)
         )
         push!(bottom_plots, plot!())
     end

@@ -21,7 +21,7 @@ function save_backscatter_figure_data(;
     )
     print("Saving backscatter statistics... ")
     # Load data
-    data = readdlm("$(TOP_LEVEL)/data/_backup_ELFIN_backscatter_and_simulation_11.25+5_standoff.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_11.25+5_standoff_both.csv", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
@@ -220,7 +220,7 @@ end
 function save_example_events()
     print("Saving example events... ")
     # Get data
-    data = readdlm("$(TOP_LEVEL)/data/_backup_ELFIN_backscatter_and_simulation_11.25+5_standoff.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_11.25+5_standoff_both.csv", ',', skipstart = 1)
     start = DateTime.(data[:,1])
 
     # Get events
@@ -373,10 +373,6 @@ function save_beam_weighting_procedure()
     cull_below = 90# event.avg_anti_loss_cone_angle
     cull_idxs = event.avg_pitch_angles .< cull_below
 
-    @show sum(data_counts[:, .!cull_idxs])
-    @show sum(backscatter_counts[:, .!cull_idxs])
-    println("TODO compare 11.25, 11.25+5, and downgoing")
-
     npzwrite("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz",
         avg_pitch_angles = event.avg_pitch_angles,
         avg_energies = event.energy_bins_mean,
@@ -505,6 +501,14 @@ function save_supplemental_curvefit_data()
     number_ss_total = sum((number_y .- mean(number_y)).^2)
     
     results["number_r2"] = 1 - (number_ss_residual / number_ss_total)
+
+    println(
+        """
+        \n
+        r_N &= $(round(number_a, sigdigits = 8)) \\cdot \\left( \\frac{J_\\text{precip}}{J_\\text{trap}} \\right)^{$(round(number_b, sigdigits = 8))} & R^2 = $(round(results["number_r2"], sigdigits = 8)) \\\\
+        r_E &= $(round(energy_a, sigdigits = 8)) \\cdot \\left( \\frac{J_\\text{precip}}{J_\\text{trap}} \\right)^{$(round(energy_b, sigdigits = 8))} & R^2 = $(round(results["energy_r2"], sigdigits = 8))
+        """
+    )
 
     npzwrite("$(TOP_LEVEL)/data/figure_data/supplemental_curvefit.npz", results)
     println("Done")
