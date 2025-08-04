@@ -75,7 +75,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
 
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = 0 #5 + (ELFIN_EPD_FOV / 2) # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    cone_standoff_angle = 0 #ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)
@@ -98,6 +98,13 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         pitch_angle_range = loss_cone_limits,
         energy = true
     )
+    
+    # Exit early if there is no precipitating flux to avoid wasted work. This is a major speedup!
+    if loss_cone_number ≤ 10
+        return
+    end
+
+    # Continue getting data-derived values
     trapped_energy, trapped_number = integrate_flux(event,
         time = true,
         time_idxs = start_idx:stop_idx,
@@ -155,7 +162,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         downgoing_idxs = reverse(downgoing_idxs)
     end
 
-    """
+    #=
     # G4EPP can see all gyrophases, while ELFIN can only see where it was pointed. So, we need to proportionally
     # scale G4EPP by the amount of solid angle in a ring ELFIN could see at a given pitch angle
     Ω_elfin_epd = 2π * (1 - cosd(ELFIN_EPD_FOV/2))
@@ -163,7 +170,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     G4EPP_to_ELFIN_scaling_factor = Ω_elfin_epd ./ Ω_G4EPP
 
     [backscatter_input_distribution.values[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
-    """
+    =#
 
     # Cull inputs that are not downgoing
     backscatter_input_distribution.values[:, .!downgoing_idxs] .= 0
@@ -173,10 +180,10 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     backscatter_output_distribution.values .= 0
     backscatter_output_distribution.values = simulate_backscatter(backscatter_input_distribution)
 
-    """
+    #=
     # Convert back to ELFIN FOV
     [backscatter_output_distribution.values[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
-    """
+    =#
 
     # Cut out bins that would've been discarded in ELFIN data due to low counts
     # Using δq/q ≈ 1/√counts (shot noise), which is what ELFIN does
@@ -193,8 +200,57 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
 
     # Get simulated backscatter count and energy
     sim_alc_number = sum(backscatter_output_distribution.values[:, alc_idxs])
+    
+
+
+    # DEBUGGING
+    #=
+    if false == (((sim_alc_number/loss_cone_number) > 0.5) .&& ((anti_loss_cone_number/loss_cone_number) < 0.4))
+        heatmap(log10.(data_counts), clims = (1,3))
+        display(plot!())
+
+        backscatter_output_distribution.values[:, .!alc_idxs] .= 0
+
+        heatmap(log10.(backscatter_output_distribution.values), clims = (1,3))
+        display(plot!())
+
+        sim_rn = sim_alc_number/loss_cone_number
+        rn = anti_loss_cone_number/loss_cone_number
+
+        dt = event.time[stop_idx] - event.time[start_idx]
+
+        println()
+        @show sim_rn
+        @show loss_cone_number
+        @show rn
+        @show α_lc
+
+        error()
+    end
+    =#
+    
+
+
+    
+    
+    
+    
     convert_distribution!(backscatter_output_distribution, "energy")
     sim_alc_energy = sum(backscatter_output_distribution.values[:, alc_idxs])
+
+
+
+
+   
+
+
+
+
+
+
+
+
+
 
     # Write results to file
     event_data = "$(event.time_datetime[start_idx]),$(event.time_datetime[stop_idx]+Microsecond(ELFIN_SPIN_PERIOD*1e6)),$(event.satellite),$(event.L[start_idx]),$(event.L[stop_idx]),$(event.MLT[start_idx]),$(event.MLT[stop_idx])"
@@ -209,6 +265,8 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         write(file, "$(event_data),$(lc_data),$(trap_data),$(alc_data),$(error_data),$(sim_data)\n")
         close(file)
     end
+
+    return
 end
 
 function get_elfin_grid_bin_edges(event::Event; time_idxs = 1:event.n_datapoints)

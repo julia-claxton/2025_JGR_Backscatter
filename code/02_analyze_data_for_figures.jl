@@ -16,12 +16,14 @@ include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Visualization.jl")
 include("$(TOP_LEVEL)/code/General_Functions.jl")
 include("$(TOP_LEVEL)/code/G4EPP_2.0/Frontend_Functions.jl")
 
+const RESULTS_FILENAME = "meow.csv"
+
 function save_backscatter_figure_data(;
     backscatter_ratio_maximum_absolute_error = .025
     )
     print("Saving backscatter statistics... ")
     # Load data
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_all_downgoing_record_half_fov.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/$(RESULTS_FILENAME)", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
@@ -35,18 +37,18 @@ function save_backscatter_figure_data(;
     MLT_stop = data[:,7]
 
     # Data-derived quantities
-    loss_cone_eflux = data[:,8] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    loss_cone_nflux = data[:,9] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    loss_cone_eflux = data[:,8] ./ (6*(Δt./16) .* ELFIN_EPD_AREA) # With the pitch angle coverage we require, the loss cone basically always has 6 look sectors of data in it
+    loss_cone_nflux = data[:,9] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
 
-    trapped_eflux = data[:,10] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    trapped_nflux = data[:,11] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    trapped_eflux = data[:,10] ./ (4*(Δt./16) .* ELFIN_EPD_AREA) # With the pitch angle coverage we require, the trapped region basically always has 4 look sectors of data in it
+    trapped_nflux = data[:,11] ./ (4*(Δt./16) .* ELFIN_EPD_AREA)
 
-    anti_loss_cone_eflux = data[:,12] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    anti_loss_cone_nflux = data[:,13] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    anti_loss_cone_eflux = data[:,12] ./ (6*(Δt./16) .* ELFIN_EPD_AREA) # With the pitch angle coverage we require, the anti-loss cone basically always has 6 look sectors of data in it
+    anti_loss_cone_nflux = data[:,13] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
 
     # Simulation quantities
-    sim_anti_loss_cone_eflux = data[:,17] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    sim_anti_loss_cone_nflux = data[:,18] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_eflux = data[:,17] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_nflux = data[:,18] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
 
     # Derived quantities
     energy_backscatter_ratio = anti_loss_cone_eflux ./ loss_cone_eflux
@@ -229,7 +231,7 @@ end
 function save_example_events()
     print("Saving example events... ")
     # Get data
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_all_downgoing_record_half_fov.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/$(RESULTS_FILENAME)", ',', skipstart = 1)
     start = DateTime.(data[:,1])
 
     # Get events

@@ -997,7 +997,7 @@ Figure Generation
 ======================================
 """
 
-
+#=
 figure_elfin_data()
 figure_data_coverage()
 
@@ -1014,15 +1014,14 @@ supplemental_ribbon()
 supplemental_curvefit()
 
 error()
-
-
+=#
 
 
 
 function meow()
     backscatter_ratio_maximum_absolute_error = .025
 
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_all_downgoing_record_half_fov.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation.csv", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
@@ -1036,18 +1035,18 @@ function meow()
     MLT_stop = data[:,7]
 
     # Data-derived quantities
-    loss_cone_eflux = data[:,8] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    loss_cone_nflux = data[:,9] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    loss_cone_eflux = data[:,8] ./ (6*(Δt./16) .* ELFIN_EPD_AREA) # With the pitch angle coverage we require, the loss cone basically always has 6 look sectors of data in it
+    loss_cone_nflux = data[:,9] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
 
-    trapped_eflux = data[:,10] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    trapped_nflux = data[:,11] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    trapped_eflux = data[:,10] ./ (4*(Δt./16) .* ELFIN_EPD_AREA) # With the pitch angle coverage we require, the trapped region basically always has 4 look sectors of data in it
+    trapped_nflux = data[:,11] ./ (4*(Δt./16) .* ELFIN_EPD_AREA)
 
-    anti_loss_cone_eflux = data[:,12] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    anti_loss_cone_nflux = data[:,13] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    anti_loss_cone_eflux = data[:,12] ./ (6*(Δt./16) .* ELFIN_EPD_AREA) # With the pitch angle coverage we require, the anti-loss cone basically always has 6 look sectors of data in it
+    anti_loss_cone_nflux = data[:,13] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
 
     # Simulation quantities
-    sim_anti_loss_cone_eflux = data[:,17] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
-    sim_anti_loss_cone_nflux = data[:,18] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_eflux = data[:,17] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_nflux = data[:,18] ./ (6*(Δt./16) .* ELFIN_EPD_AREA)
 
     # Derived quantities
     energy_backscatter_ratio = anti_loss_cone_eflux ./ loss_cone_eflux
@@ -1090,6 +1089,7 @@ function meow()
 
         ylabel = "Sim r_N",
         ylims = (0, 1),
+        yticks = 0:.1:1,
 
         aspect_ratio = 1,
         background_color_inside = :black
@@ -1106,22 +1106,27 @@ function meow()
 
     display(plot!())
 
+    @warn "Hemisphere ID below this point"
+    error()
+
     #idxs = (0.1 .< number_backscatter_ratio .< 0.4) .&& (0.7 .< sim_number_backscatter_ratio)
     #idxs = (0.1 .< number_backscatter_ratio .< 0.4) .&& (sim_number_backscatter_ratio .< 0.3)
     #idxs = (0.4 .< number_backscatter_ratio .< 1) .&& (sim_number_backscatter_ratio .< 0.6)
 
-    #idxs = idxs .&& n_idxs_to_analyze
+    idxs = n_idxs_to_analyze .&& (sim_number_backscatter_ratio .> 0.3)
 
-    idxs = findall(n_idxs_to_analyze)
+    idxs = findall(idxs)
     northern_hemisphere = fill(false, length(idxs))
     for i in eachindex(idxs)
         print_progress_bar(i/length(idxs))
-        northern_hemisphere[i] = create_event(start[idxs[i]], stop[idxs[i]], sat[idxs[i]], maximum_relative_error = 0.5).avg_loss_cone_angle < 90
+        #northern_hemisphere[i] = create_event(start[idxs[i]], stop[idxs[i]], sat[idxs[i]], maximum_relative_error = 0.5).avg_loss_cone_angle < 90
 
         color = :red
-        if northern_hemisphere[i] == false
+        if L_start[idxs[i]] < 10
             color = :blue
         end
+
+
         scatter!([number_backscatter_ratio[idxs[i]]], [sim_number_backscatter_ratio[idxs[i]]],
             label = false,
             markercolor = color
