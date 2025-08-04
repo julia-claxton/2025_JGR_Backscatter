@@ -21,7 +21,7 @@ function save_backscatter_figure_data(;
     )
     print("Saving backscatter statistics... ")
     # Load data
-    data = readdlm("$(TOP_LEVEL)/data/meow.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_all_downgoing_record_half_fov.csv", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
@@ -229,7 +229,7 @@ end
 function save_example_events()
     print("Saving example events... ")
     # Get data
-    data = readdlm("$(TOP_LEVEL)/data/meow.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_all_downgoing_record_half_fov.csv", ',', skipstart = 1)
     start = DateTime.(data[:,1])
 
     # Get events

@@ -997,6 +997,7 @@ Figure Generation
 ======================================
 """
 
+
 figure_elfin_data()
 figure_data_coverage()
 
@@ -1011,3 +1012,126 @@ figure_backscattered_pads()
 
 supplemental_ribbon()
 supplemental_curvefit()
+
+error()
+
+
+
+
+
+function meow()
+    backscatter_ratio_maximum_absolute_error = .025
+
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_all_downgoing_record_half_fov.csv", ',', skipstart = 1)
+    
+    # Event metadata
+    start = DateTime.(data[:,1])
+    stop = DateTime.(data[:,2])
+    sat = data[:,3]
+    Δt = [(stop[i] - start[i]).value ./ 1000 for i in eachindex(start)]
+
+    L_start = data[:,4]
+    L_stop = data[:,5]
+    MLT_start = data[:,6]
+    MLT_stop = data[:,7]
+
+    # Data-derived quantities
+    loss_cone_eflux = data[:,8] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    loss_cone_nflux = data[:,9] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+
+    trapped_eflux = data[:,10] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    trapped_nflux = data[:,11] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+
+    anti_loss_cone_eflux = data[:,12] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    anti_loss_cone_nflux = data[:,13] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+
+    # Simulation quantities
+    sim_anti_loss_cone_eflux = data[:,17] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_nflux = data[:,18] ./ ((Δt./ 16) .* ELFIN_EPD_AREA)
+
+    # Derived quantities
+    energy_backscatter_ratio = anti_loss_cone_eflux ./ loss_cone_eflux
+    number_backscatter_ratio = anti_loss_cone_nflux ./ loss_cone_nflux
+
+    sim_energy_backscatter_ratio = sim_anti_loss_cone_eflux ./ loss_cone_eflux
+    sim_number_backscatter_ratio = sim_anti_loss_cone_nflux ./ loss_cone_nflux
+
+    # Error data
+    lc_relative_error = data[:,14]
+    alc_relative_error = data[:,16]
+
+    uncertainty_energy_backscatter_ratio = abs.(energy_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
+    uncertainty_number_backscatter_ratio = abs.(number_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
+
+    bad_data_idxs = (loss_cone_nflux .≥ 10^4.5) .&& (number_backscatter_ratio .> 0.85)
+    good_data_idxs = .!bad_data_idxs
+
+    # Filter the data to only what we want to analyze
+    e_idxs_to_analyze = (
+        (uncertainty_energy_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
+        .&& good_data_idxs
+        .&& (loss_cone_eflux .> 1)
+    )
+    
+    n_idxs_to_analyze = (
+        (uncertainty_number_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
+        .&& good_data_idxs
+        .&& (loss_cone_nflux .> 1)
+    )
+
+
+    data_backscatter_edges = 0:.025:1.5
+    sim_backscatter_edges = 0:.025:2
+    frequencies = exact_2dhistogram(number_backscatter_ratio[n_idxs_to_analyze], sim_number_backscatter_ratio[n_idxs_to_analyze], data_backscatter_edges, sim_backscatter_edges)
+
+    heatmap(data_backscatter_edges, sim_backscatter_edges, log10.(frequencies'),
+        xlabel = "Data r_N",
+        xlims = (0, 1),
+
+        ylabel = "Sim r_N",
+        ylims = (0, 1),
+
+        aspect_ratio = 1,
+        background_color_inside = :black
+    )
+    plot!([0, 2], [0, 2],
+        label = false,
+        linecolor = :white,
+        linestyle = :dash,
+        linewidth = 1.5
+    )
+    annotate!((0.5, 0.1, text("Underestimation", :white, :left)))
+    annotate!((0.2, 0.9, text("Overestimation", :white, :left)))
+
+
+    display(plot!())
+
+    #idxs = (0.1 .< number_backscatter_ratio .< 0.4) .&& (0.7 .< sim_number_backscatter_ratio)
+    #idxs = (0.1 .< number_backscatter_ratio .< 0.4) .&& (sim_number_backscatter_ratio .< 0.3)
+    #idxs = (0.4 .< number_backscatter_ratio .< 1) .&& (sim_number_backscatter_ratio .< 0.6)
+
+    #idxs = idxs .&& n_idxs_to_analyze
+
+    idxs = findall(n_idxs_to_analyze)
+    northern_hemisphere = fill(false, length(idxs))
+    for i in eachindex(idxs)
+        print_progress_bar(i/length(idxs))
+        northern_hemisphere[i] = create_event(start[idxs[i]], stop[idxs[i]], sat[idxs[i]], maximum_relative_error = 0.5).avg_loss_cone_angle < 90
+
+        color = :red
+        if northern_hemisphere[i] == false
+            color = :blue
+        end
+        scatter!([number_backscatter_ratio[idxs[i]]], [sim_number_backscatter_ratio[idxs[i]]],
+            label = false,
+            markercolor = color
+        )
+        display(plot!())
+
+    end
+    println(); println(); println()
+    @show northern_hemisphere
+    println(); println(); println()
+end
+
+meow()
