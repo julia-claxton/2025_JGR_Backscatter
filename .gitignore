@@ -1,6 +1,5 @@
 # Raw data files
 *.cdf
-*.csv
 
 # OS crap
 .DS_Store
