@@ -75,7 +75,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
 
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    cone_standoff_angle = 0 #ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)

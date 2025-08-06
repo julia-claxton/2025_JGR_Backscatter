@@ -1021,7 +1021,7 @@ error()
 function meow()
     backscatter_ratio_maximum_absolute_error = .025
 
-    data = readdlm("$(TOP_LEVEL)/data/$(RESULTS_FILENAME)", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation.csv", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
