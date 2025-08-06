@@ -1,7 +1,6 @@
 include("/Users/luna/Documents/Work/Research/Julia_ELFIN_Tools/Events.jl")
 include("/Users/luna/Documents/Work/Research/Julia_ELFIN_Tools/Visualization.jl")
 include("/Users/luna/Documents/Work/Research/Backscatter_Analysis/code/General_Functions.jl")
-include("/Users/luna/Documents/Work/Research/G4EPP_2.0/Frontend_Functions.jl")
 using Base.Threads
 
 # Run with max threads
@@ -162,7 +161,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # MeV
     data_counts = [data_nfluence[E,α] .* ΔE[E] .* ELFIN_GEOMETRIC_FACTOR for E in 1:16, α in 1:16] # number
     backscatter_input_distribution = create_distribution(get_elfin_grid_bin_edges(event, time_idxs = start_idx:stop_idx)..., data_counts, "counts")
-
+ 
     # Get masks for loss/anti-loss cone and downgoing pitch angle bins
     lc_idxs = loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< loss_cone_limits[2]
     alc_idxs = anti_loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< anti_loss_cone_limits[2]
