@@ -10,8 +10,9 @@ using NumericalIntegration              # Numerical integration functions
 # Written by Julia Claxton. Contact: julia.claxton@colorado.edu
 # Released under MIT License
 
+const G4EPP_TOP_LEVEL = "/Users/luna/Research/G4EPP_2.0/"
 
-function _find_datafile(data_type, file_prefix, input_particle, beam_energy, beam_pitch_angle; quiet = false)
+function find_datafile(data_type, file_prefix, input_particle, beam_energy, beam_pitch_angle; quiet = false)
     # Get the file corresponding to this prefix, energy, and pitch angle. If there are multiple files that have different numbers of input
     # particles, this will select the run with the larger number of input particles. There shouldn't be multiple files like that,
     # but we are being safe just in case.
@@ -56,7 +57,7 @@ end
 
 
 
-function _counts_to_beam_weights(distribution::Distribution)
+function counts_to_beam_weights(distribution)
     """
     Inputs:
         TODO
@@ -66,7 +67,7 @@ function _counts_to_beam_weights(distribution::Distribution)
 
     Description:
     TODO
-    """
+
     @assert distribution.type == "counts"
 
     # Find nearest beam location for each nonzero input and assign that bin's particles to that beam
@@ -113,24 +114,11 @@ function _counts_to_beam_weights(distribution::Distribution)
     end
     @assert sum(beam_weights) - sum(distribution.values) < 1 "Beam weights total = $(sum(beam_weights)), counts total = $(sum(distribution.values))"
     return beam_weights
+    """
 end
 
-function _get_beam_locations(; data_type = "processed")
-    """
-    Inputs:
-        None
-
-    Returns:
-        beam_energies_keV: Every energy that a beam was run at. Units: keV
-        beam_pitch_angles_deg: Every pitch angle that a beam was run at. Units: deg
-
-    Description:
-    Gets the energies and pitch angles that beams were run at. Beams were run for every combination of
-    energy and pitch angle that is returned - i.e., these are the axis labels for the beam grid in
-    energy-pitch angle space.
-    """
-
-    raw_files = glob("backscatter_electron_input_*", "$(G4EPP_TOP_LEVEL)/data/$(data_type)") # Arbitrarily choose electron backscatter to avoid double counting different types of data
+function get_beam_locations()
+    raw_files = glob("backscatter_electron_input_*", "/Users/luna/Research/G4EPP_2.0/data/processed")
     matches = match.(Regex("input_(.*?)keV_(.*?)deg"), raw_files)
     beam_energies = [pattern_match.captures[1] for pattern_match in matches]
     beam_pitch_angles = [pattern_match.captures[2] for pattern_match in matches]

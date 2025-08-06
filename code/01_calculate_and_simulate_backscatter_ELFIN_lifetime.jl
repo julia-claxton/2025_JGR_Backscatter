@@ -1,7 +1,11 @@
 include("/Users/luna/Documents/Work/Research/Julia_ELFIN_Tools/Events.jl")
 include("/Users/luna/Documents/Work/Research/Julia_ELFIN_Tools/Visualization.jl")
 include("/Users/luna/Documents/Work/Research/Backscatter_Analysis/code/General_Functions.jl")
+include("/Users/luna/Documents/Work/Research/Backscatter_Analysis/code/Backscatter_Tools.jl")
 using Base.Threads
+using Statistics, LinearAlgebra
+using BenchmarkTools, Profile, TickTock
+using BasicInterpolators
 
 # Run with max threads
 # julia --threads 10 /Users/luna/Research/Backscatter_Analysis/code/01_calculate_and_simulate_backscatter_ELFIN_lifetime.jl
@@ -26,7 +30,8 @@ function write_elfin_lifetime_backscatter_data(;
     println("Calculating backscatter statistics and simulating events over ELFIN lifetime (Δidx = $(slice_length_idx))")
     dates, sats = all_elfin_science_dates_and_satellite_ids()
     days_analyzed = 0
-    Threads.@threads for i in eachindex(dates)
+    #Threads.@threads for i in eachindex(dates)
+    for i in 1000:1100
         lock(progress_bar_threadlock) do
             print_progress_bar(days_analyzed/length(dates), bar_length = 50)
         end
@@ -72,35 +77,25 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     # Get loss cone and anti loss cone values
     α_lc = mean(event.loss_cone_angles[start_idx:stop_idx])
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
+    α_center = dropdims(mean(event.pitch_angles[start_idx:stop_idx, :], dims = 1), dims = 1)
 
+    # Get northern hemisphere equivalent anti-loss cone angle for simulation
+    cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    α_backscatter = max(α_alc, 180-α_alc) + cone_standoff_angle
+    
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = 0 #ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)
         trapped_limits = (α_lc, α_alc)
         anti_loss_cone_limits = (α_alc + cone_standoff_angle, 180)
         downgoing_limits = (0, 90)
-
-
-
-        loss_cone_limits = (0, 90)
-        anti_loss_cone_limits = (90, 180)
-
-
     else 
         # Southern hemisphere
         loss_cone_limits = (α_lc + cone_standoff_angle, 180)
         trapped_limits = (α_alc, α_lc)
         anti_loss_cone_limits = (0, α_alc - cone_standoff_angle)
         downgoing_limits = (90, 180)
-
-
-
-        loss_cone_limits = (90, 180)
-        anti_loss_cone_limits = (0, 90)
-
-
     end
 
     # Get data-derived values
@@ -157,62 +152,75 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     )        
 
     # Simulate event with G4EPP
-    _, data_nfluence = integrate_flux(event, time = true, time_idxs = start_idx:stop_idx) # number / cm2 str MeV
-    ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # MeV
-    data_counts = [data_nfluence[E,α] .* ΔE[E] .* ELFIN_GEOMETRIC_FACTOR for E in 1:16, α in 1:16] # number
-    backscatter_input_distribution = create_distribution(get_elfin_grid_bin_edges(event, time_idxs = start_idx:stop_idx)..., data_counts, "counts")
- 
+    ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # Units: MeV
+    data_counts = [event.n_flux[t,E,α] * (ELFIN_SPIN_PERIOD/16) * ΔE[E] * ELFIN_GEOMETRIC_FACTOR for t in start_idx:stop_idx, E in 1:16, α in 1:16] # Units: number
+    data_counts = dropdims(sum(data_counts, dims = 1), dims = 1)
+
     # Get masks for loss/anti-loss cone and downgoing pitch angle bins
-    lc_idxs = loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< loss_cone_limits[2]
-    alc_idxs = anti_loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< anti_loss_cone_limits[2]
-    downgoing_idxs = downgoing_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< downgoing_limits[2]
+    lc_mask        =      loss_cone_limits[1] .< α_center .< loss_cone_limits[2]
+    alc_mask       = anti_loss_cone_limits[1] .< α_center .< anti_loss_cone_limits[2]
+    downgoing_mask =      downgoing_limits[1] .< α_center .< downgoing_limits[2]
 
     # Flip to northern hemisphere for G4EPP if needed
     if α_lc > 90
-        adiabatically_swap_hemisphere!(backscatter_input_distribution)
-        lc_idxs = reverse(lc_idxs)
-        alc_idxs = reverse(alc_idxs)
-        downgoing_idxs = reverse(downgoing_idxs)
+        data_counts = reverse(data_counts, dims = 2)
+        lc_mask = reverse(lc_mask)
+        alc_mask = reverse(alc_mask)
+        downgoing_mask = reverse(downgoing_mask)
     end
 
-    #=
-    # G4EPP can see all gyrophases, while ELFIN can only see where it was pointed. So, we need to proportionally
-    # scale G4EPP by the amount of solid angle in a ring ELFIN could see at a given pitch angle
-    Ω_elfin_epd = 2π * (1 - cosd(ELFIN_EPD_FOV/2))
-    Ω_G4EPP = 2π * (cosd.(backscatter_input_distribution.pitch_angle_bins_min) .- cosd.(backscatter_input_distribution.pitch_angle_bins_max))
-    G4EPP_to_ELFIN_scaling_factor = Ω_elfin_epd ./ Ω_G4EPP
 
-    [backscatter_input_distribution.values[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
-    =#
 
-    # Cull inputs that are not downgoing
-    backscatter_input_distribution.values[:, .!downgoing_idxs] .= 0
 
+
+
+
+
+
+
+
+
+
+
+    
     # Simulate backscatter
-    backscatter_output_distribution = copy(backscatter_input_distribution)
-    backscatter_output_distribution.values .= 0
-    backscatter_output_distribution.values = simulate_backscatter(backscatter_input_distribution)
+    simulation_number_backscatter, simulation_energy_backscatter = simulate_elfin_backscatter(event, α_center, data_counts, α_backscatter)
+    r = simulation_number_backscatter / anti_loss_cone_number
+    @show r
+    return
+    
+    
 
-    #=
-    # Convert back to ELFIN FOV
-    [backscatter_output_distribution.values[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
-    =#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # Cut out bins that would've been discarded in ELFIN data due to low counts
     # Using δq/q ≈ 1/√counts (shot noise), which is what ELFIN does
-    sim_relative_error = 1 ./ sqrt.(backscatter_output_distribution.values)
-    backscatter_output_distribution.values[sim_relative_error .> maximum_relative_error] .= 0
+    sim_relative_error = 1 ./ sqrt.(simulated_backscatter_counts)
+    simulated_backscatter_counts[sim_relative_error .> maximum_relative_error] .= 0
 
-    # Flip back to correct hemisphere if needed
+    # Flip back to original hemisphere if needed
     if α_lc > 90
-        adiabatically_swap_hemisphere!(backscatter_output_distribution)
-        lc_idxs = reverse(lc_idxs)
-        alc_idxs = reverse(alc_idxs)
-        downgoing_idxs = reverse(downgoing_idxs)
+        data_counts = reverse(data_counts, dims = 2)
+        lc_mask = reverse(lc_mask)
+        alc_mask = reverse(alc_mask)
+        downgoing_mask = reverse(downgoing_mask)
     end
 
     # Get simulated backscatter count and energy
-    sim_alc_number = sum(backscatter_output_distribution.values[:, alc_idxs])
+    sim_alc_number = sum(simulated_backscatter_counts[:, alc_mask])
     
 
 
@@ -222,7 +230,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         heatmap(log10.(data_counts), clims = (1,3))
         display(plot!())
 
-        backscatter_output_distribution.values[:, .!alc_idxs] .= 0
+        backscatter_output_distribution.values[:, .!alc_mask] .= 0
 
         heatmap(log10.(backscatter_output_distribution.values), clims = (1,3))
         display(plot!())
@@ -247,11 +255,6 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     
     
     
-    
-    convert_distribution!(backscatter_output_distribution, "energy")
-    sim_alc_energy = sum(backscatter_output_distribution.values[:, alc_idxs])
-
-
 
 
    
@@ -272,7 +275,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     alc_data = "$(anti_loss_cone_energy),$(anti_loss_cone_number)"
     error_data = "$(loss_cone_relative_error),$(trapped_relative_error),$(anti_loss_cone_relative_error)"
     sim_data = "$(sim_alc_energy),$(sim_alc_number)"
-    n_idxs = "$(sum(lc_idxs)),$(sum(alc_idxs))"
+    n_idxs = "$(sum(lc_mask)),$(sum(alc_mask))"
     
     lock(results_file_threadlock) do
         file = open(results_path, "a")
@@ -295,6 +298,53 @@ function get_elfin_grid_bin_edges(event::Event; time_idxs = 1:event.n_datapoints
     return event.energy_bins_min, event.energy_bins_max, elfin_pitch_angle_bins_min, elfin_pitch_angle_bins_max
 end
 
+function simulate_elfin_backscatter(event::Event, α_center, data_counts, α_backscatter)
+    beam_energies, beam_pitch_angles = get_beam_locations()
+    beam_energies = sort(unique(beam_energies))
+    beam_pitch_angles = sort(unique(beam_pitch_angles))
+    
+
+
+    # Get solid angle span of each beam
+    beam_midpoints = beam_pitch_angles[begin:end-1] .+ (diff(beam_pitch_angles) ./ 2)
+    beam_edges = [beam_pitch_angles[begin], beam_midpoints..., beam_pitch_angles[end]]
+    beam_ΔΩ = 2π .* [cosd(beam_edges[i])  - cosd(beam_edges[i+1]) for i in 1:length(beam_edges)-1]
+
+    # Get backscatter
+    number_backscattered = 0
+    energy_backscattered = 0
+    for E in 1:16
+        pad = data_counts[E,:]
+        interpolator = LinearInterpolator(α_center, pad, NoBoundaries())
+                
+        
+        for beam_idx in eachindex(beam_pitch_angles)
+            #ΔΩ = beam_ΔΩ[beam_idx] # Units: str
+            
+            number = interpolator.([beam_edges[beam_idx],beam_edges[beam_idx+1]]) # Units: # electrons
+            number = clamp.(number, 0, Inf)
+            
+            Δα = beam_edges[beam_idx+1] - beam_edges[beam_idx]
+            beam_weight = 0.5 * Δα * (number[1] + number[2])
+
+            if max(number...) == 0
+                continue
+            end
+
+
+
+            backscatter_data, n_input_particles, _ = find_datafile("processed", "backscatter", "electron", round(event.energy_bins_mean[E]), beam_pitch_angles[beam_idx])
+            backscatter_mask = backscatter_data["electron_pitch_angles"] .≥ α_backscatter
+
+            number_backscattered += beam_weight * (sum(backscatter_mask)/n_input_particles)
+            energy_backscattered += beam_weight * (sum(backscatter_data["electron_energies"][backscatter_mask])/n_input_particles)
+        end
+    end
+    return number_backscattered, energy_backscattered
+end
+
+
 tick()
 write_elfin_lifetime_backscatter_data()
 tock()
+
