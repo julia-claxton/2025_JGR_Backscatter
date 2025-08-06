@@ -27,40 +27,50 @@ function save_backscatter_figure_data(;
     
     # Event metadata
     start = DateTime.(data[:,1])
-    stop = DateTime.(data[:,2])
-    sat = data[:,3]
-    Δt = [(stop[i] - start[i]).value ./ 1000 for i in eachindex(start)]
+    stop  = DateTime.(data[:,2])
+    sat   = data[:,3]
+    Δt    = [(stop[i] - start[i]).value ./ 1000 for i in eachindex(start)]
 
     L_start = data[:,4]
-    L_stop = data[:,5]
+    L_stop  = data[:,5]
+
     MLT_start = data[:,6]
-    MLT_stop = data[:,7]
+    MLT_stop  = data[:,7]
 
     # Data-derived quantities
-    lc_n_sectors = data[:,19]
-    alc_n_sectors = data[:,20]
+    lc_n_sectors   = data[:,19]
+    alc_n_sectors  = data[:,20]
+    trap_n_sectors = 16 .- lc_n_sectors .- alc_n_sectors
 
-    loss_cone_eflux = data[:,8] ./ ((lc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-    loss_cone_nflux = data[:,9] ./ ((lc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
+    loss_cone_energy      = data[:,8]
+    loss_cone_number      = data[:,9]
+    trapped_energy        = data[:,10]
+    trapped_number        = data[:,11]
+    anti_loss_cone_energy = data[:,12]
+    anti_loss_cone_number = data[:,13]
 
-    trapped_eflux = data[:,10] ./ (( (16 .-lc_n_sectors .-alc_n_sectors).*Δt./16) .* ELFIN_EPD_AREA) 
-    trapped_nflux = data[:,11] ./ (( (16 .-lc_n_sectors .-alc_n_sectors).*Δt./16) .* ELFIN_EPD_AREA) 
-
-    anti_loss_cone_eflux = data[:,12] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-    anti_loss_cone_nflux = data[:,13] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
+    loss_cone_eflux      =      loss_cone_energy ./ ((lc_n_sectors .*Δt ./ 16) .* ELFIN_EPD_AREA)
+    loss_cone_nflux      =      loss_cone_number ./ ((lc_n_sectors .*Δt ./ 16) .* ELFIN_EPD_AREA)
+    trapped_eflux        =        trapped_energy ./ ((trap_n_sectors .*Δt ./ 16) .* ELFIN_EPD_AREA) 
+    trapped_nflux        =        trapped_number ./ ((trap_n_sectors .*Δt ./ 16) .* ELFIN_EPD_AREA) 
+    anti_loss_cone_eflux = anti_loss_cone_energy ./ ((alc_n_sectors .*Δt ./ 16) .* ELFIN_EPD_AREA)
+    anti_loss_cone_nflux = anti_loss_cone_number ./ ((alc_n_sectors .*Δt ./ 16) .* ELFIN_EPD_AREA)
 
     # Simulation quantities
-    sim_anti_loss_cone_eflux = data[:,17] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-    sim_anti_loss_cone_nflux = data[:,18] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_energy = data[:,17]
+    sim_anti_loss_cone_number = data[:,18]
+
+    sim_anti_loss_cone_eflux = sim_anti_loss_cone_energy ./ ((alc_n_sectors .* Δt ./ 16) .* ELFIN_EPD_AREA)
+    sim_anti_loss_cone_nflux = sim_anti_loss_cone_number ./ ((alc_n_sectors .* Δt ./ 16) .* ELFIN_EPD_AREA)
 
     # Derived quantities
-    energy_backscatter_ratio = anti_loss_cone_eflux ./ loss_cone_eflux
-    number_backscatter_ratio = anti_loss_cone_nflux ./ loss_cone_nflux
+    energy_backscatter_ratio = anti_loss_cone_energy ./ loss_cone_energy
+    number_backscatter_ratio = anti_loss_cone_number ./ loss_cone_number
 
-    sim_energy_backscatter_ratio = sim_anti_loss_cone_eflux ./ loss_cone_eflux
-    sim_number_backscatter_ratio = sim_anti_loss_cone_nflux ./ loss_cone_nflux
+    sim_energy_backscatter_ratio = sim_anti_loss_cone_energy ./ loss_cone_energy
+    sim_number_backscatter_ratio = sim_anti_loss_cone_number ./ loss_cone_number
 
-    JoverJ90 = loss_cone_nflux ./ trapped_nflux
+    JoverJ90 = loss_cone_number ./ trapped_number
 
     # Error data
     lc_relative_error = data[:,14]
@@ -69,13 +79,11 @@ function save_backscatter_figure_data(;
     uncertainty_energy_backscatter_ratio = abs.(energy_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
     uncertainty_number_backscatter_ratio = abs.(number_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
 
+
     # Save figure data
     nflux_bin_edges = 10.0.^(-2:.15:9)
     backscatter_bin_spacing = .025
     backscatter_bin_edges = 0:backscatter_bin_spacing:2
-
-    # Ensure uniform sapcing of backscatter bin edges
-    @assert all(diff(backscatter_bin_edges) .≈ backscatter_bin_spacing)
 
     # Find bad data
     bad_data_idxs = (-0.5 .< log10.(JoverJ90)) .&& (0.9 .< number_backscatter_ratio)
@@ -169,9 +177,9 @@ function save_backscatter_figure_data(;
         trimmed_number_frequencies = trimmed_number_frequencies
     )
 
-    # G4/ELFIN Comparison
-    number_residuals = sim_anti_loss_cone_nflux ./ anti_loss_cone_nflux
-    energy_residuals = sim_anti_loss_cone_eflux ./ anti_loss_cone_eflux
+    # Data/model Comparison
+    number_residuals = sim_anti_loss_cone_number ./ anti_loss_cone_number
+    energy_residuals = sim_anti_loss_cone_energy ./ anti_loss_cone_energy
 
     residual_bin_edges = 10.0.^(-2.5:.05:2.5)
     energy_residual_frequencies = exact_1dhistogram(energy_residuals[e_idxs_to_analyze], residual_bin_edges)
@@ -205,6 +213,14 @@ function save_backscatter_figure_data(;
     comparison_number_frequencies = exact_2dhistogram(number_backscatter_ratio[n_idxs_to_analyze], sim_number_backscatter_ratio[n_idxs_to_analyze], comparison_data_backscatter_edges, comparison_sim_backscatter_edges)
     comparison_energy_frequencies = exact_2dhistogram(energy_backscatter_ratio[e_idxs_to_analyze], sim_energy_backscatter_ratio[e_idxs_to_analyze], comparison_data_backscatter_edges, comparison_sim_backscatter_edges)
     
+    # Histogram of data ALC flux vs sim ALC flux
+    data_alc_flux_edges = -2:.1:10
+    sim_alc_flux_edges = -2:.1:10.5
+
+    data_model_heatmap_number_frequencies = exact_2dhistogram(log10.(anti_loss_cone_nflux[n_idxs_to_analyze]), log10.(sim_anti_loss_cone_nflux[n_idxs_to_analyze]), data_alc_flux_edges, sim_alc_flux_edges)
+    data_model_heatmap_energy_frequencies = exact_2dhistogram(log10.(anti_loss_cone_eflux[e_idxs_to_analyze]), log10.(sim_anti_loss_cone_eflux[e_idxs_to_analyze]), data_alc_flux_edges, sim_alc_flux_edges)
+
+
     npzwrite("$(TOP_LEVEL)/data/figure_data/g4epp_elfin_comparison.npz",
         backscatter_ratio_maximum_absolute_error = backscatter_ratio_maximum_absolute_error,
         total_time = sum(Δt[n_idxs_to_analyze]),
@@ -226,7 +242,12 @@ function save_backscatter_figure_data(;
         comparison_sim_backscatter_edges = comparison_sim_backscatter_edges,
         comparison_data_backscatter_edges = comparison_data_backscatter_edges,
         comparison_number_frequencies = comparison_number_frequencies,
-        comparison_energy_frequencies = comparison_energy_frequencies
+        comparison_energy_frequencies = comparison_energy_frequencies,
+
+        data_alc_flux_edges = data_alc_flux_edges,
+        sim_alc_flux_edges = sim_alc_flux_edges,
+        data_model_heatmap_number_frequencies = data_model_heatmap_number_frequencies,
+        data_model_heatmap_energy_frequencies = data_model_heatmap_energy_frequencies
     )
     println("Done")
 end

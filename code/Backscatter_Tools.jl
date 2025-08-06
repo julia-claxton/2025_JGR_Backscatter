@@ -10,49 +10,6 @@ using NumericalIntegration              # Numerical integration functions
 # Written by Julia Claxton. Contact: julia.claxton@colorado.edu
 # Released under MIT License
 
-const G4EPP_TOP_LEVEL = "/Users/luna/Research/G4EPP_2.0/"
-
-function find_datafile(data_type, file_prefix, input_particle, beam_energy, beam_pitch_angle; quiet = false)
-    # Get the file corresponding to this prefix, energy, and pitch angle. If there are multiple files that have different numbers of input
-    # particles, this will select the run with the larger number of input particles. There shouldn't be multiple files like that,
-    # but we are being safe just in case.
-    if data_type == "raw"
-        file_extension = "csv"
-    elseif data_type == "processed"
-        file_extension = "npz"
-    else
-        error("Please provide data_type of either \"raw\" or \"processed\". Got $(data_type)")
-    end
-
-    available_files = glob("$(file_prefix)_$(input_particle)_input_$(beam_energy)keV_$(beam_pitch_angle)deg_*.$(file_extension)", "$(G4EPP_TOP_LEVEL)/data/$(data_type)")
-    
-    # If we don't find the file...
-    if length(available_files) == 0
-        if quiet == false; @warn "$(file_prefix)_$(input_particle)_input_$(beam_energy)keV_$(beam_pitch_angle)deg_*.$(file_extension) not found!"; end
-        return nothing, nothing, nothing
-    end
-
-    # Find number of input particles each file at this energy and pitch angle has
-    matches_n_particles = match.(Regex("deg_(.*?)particles.$(file_extension)"), available_files) # Matches for the pattern containing number of particles
-    number_of_particles = [n_particle_match.captures[1] for n_particle_match in matches_n_particles] # Number of particles contained in each match
-    number_of_particles = parse.(Int64, number_of_particles) # Cast to integer
-
-    # Select file with largest number of particles
-    n_particles = max(number_of_particles...)
-
-    # Construct filename of data file and load it in
-    filename = "$(file_prefix)_$(input_particle)_input_$(beam_energy)keV_$(beam_pitch_angle)deg_$(n_particles)particles"
-    filepath = "$(G4EPP_TOP_LEVEL)/data/$(data_type)/$(filename).$(file_extension)"
-
-    if data_type == "raw"
-        return readdlm(filepath, ',', skipstart = 1), n_particles, filename
-    elseif data_type == "processed"
-        return npzread(filepath), n_particles, filename
-    end
-end
-
-
-
 
 
 
@@ -115,17 +72,4 @@ function counts_to_beam_weights(distribution)
     @assert sum(beam_weights) - sum(distribution.values) < 1 "Beam weights total = $(sum(beam_weights)), counts total = $(sum(distribution.values))"
     return beam_weights
     """
-end
-
-function get_beam_locations()
-    raw_files = glob("backscatter_electron_input_*", "/Users/luna/Research/G4EPP_2.0/data/processed")
-    matches = match.(Regex("input_(.*?)keV_(.*?)deg"), raw_files)
-    beam_energies = [pattern_match.captures[1] for pattern_match in matches]
-    beam_pitch_angles = [pattern_match.captures[2] for pattern_match in matches]
-
-    # Cast to float and return
-    beam_energies = parse.(Float64, beam_energies)
-    beam_pitch_angles = parse.(Float64, beam_pitch_angles)
-
-    return beam_energies, beam_pitch_angles
 end

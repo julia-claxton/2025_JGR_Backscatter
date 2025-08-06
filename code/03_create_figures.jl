@@ -430,6 +430,51 @@ function figure_1_to_1_event_simulation_residuals()
     png("$(TOP_LEVEL)/paper/figures/backscatter_residuals.png")
 end
 
+function figure_data_model_comparison()
+    data = npzread("$(TOP_LEVEL)/data/figure_data/g4epp_elfin_comparison.npz")
+    data_alc_flux_edges = data["data_alc_flux_edges"]
+    sim_alc_flux_edges = data["sim_alc_flux_edges"]
+    data_model_heatmap_number_frequencies = data["data_model_heatmap_number_frequencies"]
+    data_model_heatmap_energy_frequencies = data["data_model_heatmap_energy_frequencies"]
+
+    # Julia plots moves the tick labels when using log10 scale with heatmaps, making the figure wholly invalid. Why this happens is anyone's guess.
+    # So I must make my own log10 ticks by hand. Sigh.
+    lims = round.((-1, 6))
+    ticks = vcat([log10.(10.0^i .* (1:10)) for i in lims[1]:lims[2]-1]...)
+    ticklabels = vcat([vcat(string(i), repeat([""],9)) for i in lims[1]:lims[2]-1]...)
+    heatmap(data_alc_flux_edges, sim_alc_flux_edges, log10.(data_model_heatmap_number_frequencies'),
+        xlabel = "Log10 Data Anti-Loss Cone Flux, # cm⁻² s⁻¹",
+        xlims = lims,
+        xticks = (ticks, ticklabels),
+
+        ylabel = "Log10 Simulation Anti-Loss Cone Flux, # cm⁻² s⁻¹",
+        ylims = lims,
+        yticks = (ticks, ticklabels),
+
+        colorbar_title = "\nLog10 Occurrences, # Data Segments",
+        colormap = :haline,
+
+        framestyle = :box,
+        tickdirection = :out,
+        foreground_color_grid = RGB(.3),
+        background_color_outside = :transparent,
+        background_color_inside = RGB(0.7),
+        aspect_ratio = 1,
+        size = (1.3, 1) .* 450,
+        dpi = 300
+    )
+    plot!([-100, 100], [-100, 100],
+        label = false,
+        linecolor = :white,
+        linestyle = :dash,
+        linewidth = 2
+    )
+    annotate!((2.3,  0.5, text("Underestimation", :white, :left)))
+    annotate!((-0.5, 5.0, text("Overestimation", :white, :left)))
+    display(plot!())
+    png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")
+end
+
 function figure_predicted_backscatter()
     data = npzread("$(TOP_LEVEL)/data/figure_data/simulated_backscatter_rates.npz")
     energies = data["energies"]
@@ -997,7 +1042,9 @@ Figure Generation
 ======================================
 """
 
-#=
+figure_data_model_comparison()
+error()
+
 figure_elfin_data()
 figure_data_coverage()
 
@@ -1006,184 +1053,9 @@ figure_elfin_backscatter_vs_precipitation_ratio()
 figure_filling_vs_backscatter()
 
 figure_beam_weighting()
-figure_1_to_1_event_simulation_residuals()
+figure_data_model_comparison()
 figure_predicted_backscatter()
 figure_backscattered_pads()
 
 supplemental_ribbon()
 supplemental_curvefit()
-
-error()
-=#
-
-
-
-function meow()
-    backscatter_ratio_maximum_absolute_error = .025
-
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_no_azimuth_correction_half_fov_standoff.csv", ',', skipstart = 1)
-    
-    # Event metadata
-    start = DateTime.(data[:,1])
-    stop = DateTime.(data[:,2])
-    sat = data[:,3]
-    Δt = [(stop[i] - start[i]).value ./ 1000 for i in eachindex(start)]
-
-    L_start = data[:,4]
-    L_stop = data[:,5]
-    MLT_start = data[:,6]
-    MLT_stop = data[:,7]
-
-    # Data-derived quantities
-    lc_n_sectors = data[:,19]
-    alc_n_sectors = data[:,20]
-
-    loss_cone_eflux = data[:,8] ./ ((lc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-    loss_cone_nflux = data[:,9] ./ ((lc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-
-    trapped_eflux = data[:,10] ./ (( (16 .-lc_n_sectors .-alc_n_sectors).*Δt./16) .* ELFIN_EPD_AREA) 
-    trapped_nflux = data[:,11] ./ (( (16 .-lc_n_sectors .-alc_n_sectors).*Δt./16) .* ELFIN_EPD_AREA) 
-
-    anti_loss_cone_eflux = data[:,12] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-    anti_loss_cone_nflux = data[:,13] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-
-    # Simulation quantities
-    sim_anti_loss_cone_eflux = data[:,17] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-    sim_anti_loss_cone_nflux = data[:,18] ./ ((alc_n_sectors.*Δt./16) .* ELFIN_EPD_AREA)
-
-    # Derived quantities
-    energy_backscatter_ratio = anti_loss_cone_eflux ./ loss_cone_eflux
-    number_backscatter_ratio = anti_loss_cone_nflux ./ loss_cone_nflux
-
-    sim_energy_backscatter_ratio = sim_anti_loss_cone_eflux ./ loss_cone_eflux
-    sim_number_backscatter_ratio = sim_anti_loss_cone_nflux ./ loss_cone_nflux
-
-    JoverJ90 = loss_cone_nflux ./ trapped_nflux
-
-    # Error data
-    lc_relative_error = data[:,14]
-    alc_relative_error = data[:,16]
-
-    uncertainty_energy_backscatter_ratio = abs.(energy_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
-    uncertainty_number_backscatter_ratio = abs.(number_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
-
-    bad_data_idxs = (-0.5 .< log10.(JoverJ90)) .&& (0.9 .< number_backscatter_ratio)
-    good_data_idxs = .!bad_data_idxs
-
-    # Filter the data to only what we want to analyze
-    e_idxs_to_analyze = (
-        (uncertainty_energy_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
-        .&& good_data_idxs
-        .&& (loss_cone_eflux .> 1)
-    )
-    
-    n_idxs_to_analyze = (
-        (uncertainty_number_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
-        .&& good_data_idxs
-    )
-
-    avg_energy = loss_cone_eflux ./ loss_cone_nflux
-
-
-    data_alc_number = data[:,13]
-    sim_alc_number = data[:,18]
-
-    data_alc_flux_edges = 0:.1:10
-    sim_alc_flux_edges = 0:.1:10.5
-
-    f = exact_2dhistogram(log10.(data_alc_number[n_idxs_to_analyze]), log10.(sim_alc_number[n_idxs_to_analyze]), data_alc_flux_edges, sim_alc_flux_edges)
-    heatmap(data_alc_flux_edges, sim_alc_flux_edges, log10.(f'),
-        bg = :black,
-        aspect_ratio = 1,
-        xlabel = "Data ALC #",
-        xlims = (0, 6.5),
-        ylabel = "Sim ALC #",
-        ylims = (0, 6.5),
-    )
-    plot!([-100, 100], [-100, 100],
-        label = false,
-        linecolor = :white,
-        linestyle = :dash,
-        linewidth = 1.5
-    )
-    annotate!((3, 1, text("Underestimation", :white, :left)))
-    annotate!((1, 5.5, text("Overestimation", :white, :left)))
-    display(plot!())
-
-    error()
-
-
-    data_backscatter_edges = 0:.025:1.5
-    sim_backscatter_edges = 0:.025:2
-    frequencies = exact_2dhistogram(number_backscatter_ratio[n_idxs_to_analyze], sim_number_backscatter_ratio[n_idxs_to_analyze], data_backscatter_edges, sim_backscatter_edges)
-
-    heatmap(data_backscatter_edges, sim_backscatter_edges, log10.(frequencies'),
-        xlabel = "Data r_N",
-        xlims = (0, 1),
-        xticks = 0:.1:1,
-
-        ylabel = "Sim r_N",
-        ylims = (0, 1),
-        yticks = 0:.1:1,
-
-        aspect_ratio = 1,
-        background_color_inside = :black
-    )
-    plot!([0, 2], [0, 2],
-        label = false,
-        linecolor = :white,
-        linestyle = :dash,
-        linewidth = 1.5
-    )
-    annotate!((0.5, 0.1, text("Underestimation", :white, :left)))
-    annotate!((0.2, 0.9, text("Overestimation", :white, :left)))
-
-
-    display(plot!())
-    error()
-
-    
-    red_idxs = (alc_n_sectors .== 6) .&& n_idxs_to_analyze
-    blue_idxs = (.!red_idxs) .&& n_idxs_to_analyze
-
-    scatter!([number_backscatter_ratio[red_idxs]], [sim_number_backscatter_ratio[red_idxs]],
-        label = false,
-        markercolor = :red,
-        dpi = 300
-    )
-    display("image/png", plot!())
-
-    #=
-    idxs = n_idxs_to_analyze .&& (sim_number_backscatter_ratio .> 0.3)
-    idxs = findall(idxs)
-    for i in eachindex(idxs)
-        print_progress_bar(i/length(idxs))
-        northern_hemisphere = create_event(start[idxs[i]], stop[idxs[i]], sat[idxs[i]], maximum_relative_error = 0.5).avg_loss_cone_angle < 90
-
-
-        if northern_hemisphere == false
-            continue
-        end
-
-
-        scatter!([number_backscatter_ratio[idxs[i]]], [sim_number_backscatter_ratio[idxs[i]]],
-            label = false,
-            markercolor = :red,
-            dpi = 300
-        )
-        display("image/png", plot!())
-    end
-    =#
-
-    error()
-    to_view = findall(n_idxs_to_analyze .&& (0.2 .< sim_number_backscatter_ratio .< 0.5) .&& (0.4 .< number_backscatter_ratio .< 0.6))
-    display(to_view)
-
-    for idx in to_view
-        quicklook(create_event(start[idx], stop[idx], sat[idx], maximum_relative_error = 0.5))
-    end
-
-
-end
-
-meow()

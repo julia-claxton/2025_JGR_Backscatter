@@ -1,11 +1,12 @@
-include("/Users/luna/Documents/Work/Research/Julia_ELFIN_Tools/Events.jl")
-include("/Users/luna/Documents/Work/Research/Julia_ELFIN_Tools/Visualization.jl")
-include("/Users/luna/Documents/Work/Research/Backscatter_Analysis/code/General_Functions.jl")
-include("/Users/luna/Documents/Work/Research/Backscatter_Analysis/code/Backscatter_Tools.jl")
+const TOP_LEVEL = dirname(@__DIR__)
+const G4EPP_TOP_LEVEL = "$(TOP_LEVEL)/code/G4EPP_2.0/"
+include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Events.jl")
+include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Visualization.jl")
+include("$(TOP_LEVEL)/code/General_Functions.jl")
 using Base.Threads
 using Statistics, LinearAlgebra
 using BenchmarkTools, Profile, TickTock
-using BasicInterpolators
+
 
 # Run with max threads
 # julia --threads 10 /Users/luna/Research/Backscatter_Analysis/code/01_calculate_and_simulate_backscatter_ELFIN_lifetime.jl
@@ -30,8 +31,7 @@ function write_elfin_lifetime_backscatter_data(;
     println("Calculating backscatter statistics and simulating events over ELFIN lifetime (Δidx = $(slice_length_idx))")
     dates, sats = all_elfin_science_dates_and_satellite_ids()
     days_analyzed = 0
-    #Threads.@threads for i in eachindex(dates)
-    for i in 1000:1100
+    Threads.@threads for i in eachindex(dates)
         lock(progress_bar_threadlock) do
             print_progress_bar(days_analyzed/length(dates), bar_length = 50)
         end
@@ -169,105 +169,9 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         downgoing_mask = reverse(downgoing_mask)
     end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
     # Simulate backscatter
-    simulation_number_backscatter, simulation_energy_backscatter = simulate_elfin_backscatter(event, α_center, data_counts, α_backscatter)
-    r = simulation_number_backscatter / anti_loss_cone_number
-    @show r
-    return
+    sim_alc_number, sim_alc_energy = simulate_elfin_backscatter(event, α_center, data_counts, α_backscatter)
     
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # Cut out bins that would've been discarded in ELFIN data due to low counts
-    # Using δq/q ≈ 1/√counts (shot noise), which is what ELFIN does
-    sim_relative_error = 1 ./ sqrt.(simulated_backscatter_counts)
-    simulated_backscatter_counts[sim_relative_error .> maximum_relative_error] .= 0
-
-    # Flip back to original hemisphere if needed
-    if α_lc > 90
-        data_counts = reverse(data_counts, dims = 2)
-        lc_mask = reverse(lc_mask)
-        alc_mask = reverse(alc_mask)
-        downgoing_mask = reverse(downgoing_mask)
-    end
-
-    # Get simulated backscatter count and energy
-    sim_alc_number = sum(simulated_backscatter_counts[:, alc_mask])
-    
-
-
-    # DEBUGGING
-    #=
-    if false == (((sim_alc_number/loss_cone_number) > 0.5) .&& ((anti_loss_cone_number/loss_cone_number) < 0.4))
-        heatmap(log10.(data_counts), clims = (1,3))
-        display(plot!())
-
-        backscatter_output_distribution.values[:, .!alc_mask] .= 0
-
-        heatmap(log10.(backscatter_output_distribution.values), clims = (1,3))
-        display(plot!())
-
-        sim_rn = sim_alc_number/loss_cone_number
-        rn = anti_loss_cone_number/loss_cone_number
-
-        dt = event.time[stop_idx] - event.time[start_idx]
-
-        println()
-        @show sim_rn
-        @show loss_cone_number
-        @show rn
-        @show α_lc
-
-        error()
-    end
-    =#
-    
-
-
-    
-    
-    
-
-
-   
-
-
-
-
-
-
-
-
-
-
     # Write results to file
     event_data = "$(event.time_datetime[start_idx]),$(event.time_datetime[stop_idx]+Microsecond(ELFIN_SPIN_PERIOD*1e6)),$(event.satellite),$(event.L[start_idx]),$(event.L[stop_idx]),$(event.MLT[start_idx]),$(event.MLT[stop_idx])"
     lc_data = "$(loss_cone_energy),$(loss_cone_number)"
@@ -282,66 +186,105 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         write(file, "$(event_data),$(lc_data),$(trap_data),$(alc_data),$(error_data),$(sim_data),$(n_idxs)\n")
         close(file)
     end
-
     return
 end
 
-function get_elfin_grid_bin_edges(event::Event; time_idxs = 1:event.n_datapoints)
-    # Pitch angle. ELFIN EPD nominal FOV = 22.5º per correspondance with E. Tsai
-    avg_pitch_angles = dropdims(mean(event.pitch_angles[time_idxs,:], dims = 1), dims = 1)
-    elfin_pitch_angle_bins_min = avg_pitch_angles .- (ELFIN_EPD_FOV/2)
-    elfin_pitch_angle_bins_max = avg_pitch_angles .+ (ELFIN_EPD_FOV/2)
-    
-    elfin_pitch_angle_bins_min = clamp.(elfin_pitch_angle_bins_min, 0, 180)
-    elfin_pitch_angle_bins_max = clamp.(elfin_pitch_angle_bins_max, 0, 180)
-
-    return event.energy_bins_min, event.energy_bins_max, elfin_pitch_angle_bins_min, elfin_pitch_angle_bins_max
-end
-
 function simulate_elfin_backscatter(event::Event, α_center, data_counts, α_backscatter)
+    @assert α_backscatter > 90 # Lookup tables are for the Northern hemisphere
+
+    # Get locations of precomputed beams
     beam_energies, beam_pitch_angles = get_beam_locations()
-    beam_energies = sort(unique(beam_energies))
+    beam_energies     = sort(unique(beam_energies))
     beam_pitch_angles = sort(unique(beam_pitch_angles))
-    
-
-
-    # Get solid angle span of each beam
-    beam_midpoints = beam_pitch_angles[begin:end-1] .+ (diff(beam_pitch_angles) ./ 2)
-    beam_edges = [beam_pitch_angles[begin], beam_midpoints..., beam_pitch_angles[end]]
-    beam_ΔΩ = 2π .* [cosd(beam_edges[i])  - cosd(beam_edges[i+1]) for i in 1:length(beam_edges)-1]
 
     # Get backscatter
     number_backscattered = 0
     energy_backscattered = 0
-    for E in 1:16
-        pad = data_counts[E,:]
-        interpolator = LinearInterpolator(α_center, pad, NoBoundaries())
-                
-        
-        for beam_idx in eachindex(beam_pitch_angles)
-            #ΔΩ = beam_ΔΩ[beam_idx] # Units: str
+    for E_idx in 1:16
+        for α_idx in 1:16
+            # Get energy and pitch angle of this bin
+            E = event.energy_bins_mean[E_idx]
+            α = α_center[α_idx]
+
+            # Guard block
+            if data_counts[E_idx, α_idx] == 0; continue; end
+            if !(0 .≤ α .≤ 90); continue; end
+
+            # Get nearest beam
+            _, nearest_beam_energy_idx = findmin(abs.(beam_energies .- E))
+            _, nearest_beam_pitch_angle_idx = findmin(abs.(beam_pitch_angles .- α))
+
+            nearest_beam_energy = beam_energies[nearest_beam_energy_idx]
+            nearest_beam_pitch_angle = beam_pitch_angles[nearest_beam_pitch_angle_idx]
+
+            # Look up associated backscatter
+            backscatter_data, n_input_particles, _ = find_datafile("processed", "backscatter", "electron", nearest_beam_energy, nearest_beam_pitch_angle)
             
-            number = interpolator.([beam_edges[beam_idx],beam_edges[beam_idx+1]]) # Units: # electrons
-            number = clamp.(number, 0, Inf)
-            
-            Δα = beam_edges[beam_idx+1] - beam_edges[beam_idx]
-            beam_weight = 0.5 * Δα * (number[1] + number[2])
-
-            if max(number...) == 0
-                continue
-            end
-
-
-
-            backscatter_data, n_input_particles, _ = find_datafile("processed", "backscatter", "electron", round(event.energy_bins_mean[E]), beam_pitch_angles[beam_idx])
+            # Add backscatter to counter
+            beam_weight = data_counts[E_idx, α_idx]
             backscatter_mask = backscatter_data["electron_pitch_angles"] .≥ α_backscatter
-
             number_backscattered += beam_weight * (sum(backscatter_mask)/n_input_particles)
             energy_backscattered += beam_weight * (sum(backscatter_data["electron_energies"][backscatter_mask])/n_input_particles)
         end
     end
     return number_backscattered, energy_backscattered
 end
+
+function find_datafile(data_type, file_prefix, input_particle, beam_energy, beam_pitch_angle; quiet = false)
+    # Get the file corresponding to this prefix, energy, and pitch angle. If there are multiple files that have different numbers of input
+    # particles, this will select the run with the larger number of input particles. There shouldn't be multiple files like that,
+    # but we are being safe just in case.
+    if data_type == "raw"
+        file_extension = "csv"
+    elseif data_type == "processed"
+        file_extension = "npz"
+    else
+        error("Please provide data_type of either \"raw\" or \"processed\". Got $(data_type)")
+    end
+
+    available_files = glob("$(file_prefix)_$(input_particle)_input_$(beam_energy)keV_$(beam_pitch_angle)deg_*.$(file_extension)", "$(G4EPP_TOP_LEVEL)/data/$(data_type)")
+    
+    # If we don't find the file...
+    if length(available_files) == 0
+        if quiet == false; @warn "$(file_prefix)_$(input_particle)_input_$(beam_energy)keV_$(beam_pitch_angle)deg_*.$(file_extension) not found!"; end
+        return nothing, nothing, nothing
+    end
+
+    # Find number of input particles each file at this energy and pitch angle has
+    matches_n_particles = match.(Regex("deg_(.*?)particles.$(file_extension)"), available_files) # Matches for the pattern containing number of particles
+    number_of_particles = [n_particle_match.captures[1] for n_particle_match in matches_n_particles] # Number of particles contained in each match
+    number_of_particles = parse.(Int64, number_of_particles) # Cast to integer
+
+    # Select file with largest number of particles
+    n_particles = max(number_of_particles...)
+
+    # Construct filename of data file and load it in
+    filename = "$(file_prefix)_$(input_particle)_input_$(beam_energy)keV_$(beam_pitch_angle)deg_$(n_particles)particles"
+    filepath = "$(G4EPP_TOP_LEVEL)/data/$(data_type)/$(filename).$(file_extension)"
+
+    if data_type == "raw"
+        return readdlm(filepath, ',', skipstart = 1), n_particles, filename
+    elseif data_type == "processed"
+        return npzread(filepath), n_particles, filename
+    end
+end
+
+function get_beam_locations()
+    raw_files = glob("backscatter_electron_input_*", "/Users/luna/Research/G4EPP_2.0/data/processed")
+    matches = match.(Regex("input_(.*?)keV_(.*?)deg"), raw_files)
+    beam_energies = [pattern_match.captures[1] for pattern_match in matches]
+    beam_pitch_angles = [pattern_match.captures[2] for pattern_match in matches]
+
+    # Cast to float and return
+    beam_energies = parse.(Float64, beam_energies)
+    beam_pitch_angles = parse.(Float64, beam_pitch_angles)
+
+    return beam_energies, beam_pitch_angles
+end
+
+
+
+
 
 
 tick()
