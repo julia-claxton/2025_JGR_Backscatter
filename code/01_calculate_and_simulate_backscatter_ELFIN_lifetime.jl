@@ -20,7 +20,7 @@ function write_elfin_lifetime_backscatter_data(;
     # Create results file
     result_path = "$(dirname(@__DIR__))/data/$(result_filename)"
     file = open(result_path, "w")
-    write(file, "start_time,stop_time,sat,start_L,stop_L,start_MLT,stop_MLT,lc_energy,lc_number,trap_energy,trap_number,alc_energy,alc_number,lc_relative_error,trap_relative_error,alc_relative_error,simulation_alc_energy,simulation_alc_number\n")
+    write(file, "start_time,stop_time,sat,start_L,stop_L,start_MLT,stop_MLT,lc_energy,lc_number,trap_energy,trap_number,alc_energy,alc_number,lc_relative_error,trap_relative_error,alc_relative_error,simulation_alc_energy,simulation_alc_number,lc_n_sectors,alc_n_sectors\n")
     close(file)
 
     # Iterate through ELFIN lifetime
@@ -75,7 +75,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     α_alc = mean(event.anti_loss_cone_angles[start_idx:stop_idx])
 
     # Get loss cone, trapped, and anti-loss cone region bounds
-    cone_standoff_angle = 0 #ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
     if α_lc < 90 
         # Northern hemisphere
         loss_cone_limits = (0, α_lc - cone_standoff_angle)
@@ -153,7 +153,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     lc_idxs = loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< loss_cone_limits[2]
     alc_idxs = anti_loss_cone_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< anti_loss_cone_limits[2]
     downgoing_idxs = downgoing_limits[1] .< backscatter_input_distribution.pitch_angle_bins_mean .< downgoing_limits[2]
-    
+
     # Flip to northern hemisphere for G4EPP if needed
     if α_lc > 90
         adiabatically_swap_hemisphere!(backscatter_input_distribution)
@@ -259,10 +259,11 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     alc_data = "$(anti_loss_cone_energy),$(anti_loss_cone_number)"
     error_data = "$(loss_cone_relative_error),$(trapped_relative_error),$(anti_loss_cone_relative_error)"
     sim_data = "$(sim_alc_energy),$(sim_alc_number)"
+    n_idxs = "$(sum(lc_idxs)),$(sum(alc_idxs))"
     
     lock(results_file_threadlock) do
         file = open(results_path, "a")
-        write(file, "$(event_data),$(lc_data),$(trap_data),$(alc_data),$(error_data),$(sim_data)\n")
+        write(file, "$(event_data),$(lc_data),$(trap_data),$(alc_data),$(error_data),$(sim_data),$(n_idxs)\n")
         close(file)
     end
 
