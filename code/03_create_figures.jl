@@ -1021,7 +1021,7 @@ error()
 function meow()
     backscatter_ratio_maximum_absolute_error = .025
 
-    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation.csv", ',', skipstart = 1)
+    data = readdlm("$(TOP_LEVEL)/data/ELFIN_backscatter_and_simulation_no_azimuth_correction_half_fov_standoff.csv", ',', skipstart = 1)
     
     # Event metadata
     start = DateTime.(data[:,1])
@@ -1058,6 +1058,8 @@ function meow()
     sim_energy_backscatter_ratio = sim_anti_loss_cone_eflux ./ loss_cone_eflux
     sim_number_backscatter_ratio = sim_anti_loss_cone_nflux ./ loss_cone_nflux
 
+    JoverJ90 = loss_cone_nflux ./ trapped_nflux
+
     # Error data
     lc_relative_error = data[:,14]
     alc_relative_error = data[:,16]
@@ -1065,7 +1067,7 @@ function meow()
     uncertainty_energy_backscatter_ratio = abs.(energy_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
     uncertainty_number_backscatter_ratio = abs.(number_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
 
-    bad_data_idxs = (loss_cone_nflux .≥ 10^4.5) .&& (number_backscatter_ratio .> 0.85)
+    bad_data_idxs = (-0.5 .< log10.(JoverJ90)) .&& (0.9 .< number_backscatter_ratio)
     good_data_idxs = .!bad_data_idxs
 
     # Filter the data to only what we want to analyze
@@ -1078,10 +1080,37 @@ function meow()
     n_idxs_to_analyze = (
         (uncertainty_number_backscatter_ratio .< backscatter_ratio_maximum_absolute_error) 
         .&& good_data_idxs
-        .&& (loss_cone_nflux .> 1)
     )
 
     avg_energy = loss_cone_eflux ./ loss_cone_nflux
+
+
+    data_alc_number = data[:,13]
+    sim_alc_number = data[:,18]
+
+    data_alc_flux_edges = 0:.1:10
+    sim_alc_flux_edges = 0:.1:10.5
+
+    f = exact_2dhistogram(log10.(data_alc_number[n_idxs_to_analyze]), log10.(sim_alc_number[n_idxs_to_analyze]), data_alc_flux_edges, sim_alc_flux_edges)
+    heatmap(data_alc_flux_edges, sim_alc_flux_edges, log10.(f'),
+        bg = :black,
+        aspect_ratio = 1,
+        xlabel = "Data ALC #",
+        xlims = (0, 6.5),
+        ylabel = "Sim ALC #",
+        ylims = (0, 6.5),
+    )
+    plot!([-100, 100], [-100, 100],
+        label = false,
+        linecolor = :white,
+        linestyle = :dash,
+        linewidth = 1.5
+    )
+    annotate!((3, 1, text("Underestimation", :white, :left)))
+    annotate!((1, 5.5, text("Overestimation", :white, :left)))
+    display(plot!())
+
+    error()
 
 
     data_backscatter_edges = 0:.025:1.5
@@ -1111,14 +1140,10 @@ function meow()
 
 
     display(plot!())
+    error()
 
-
-
-    idxs = n_idxs_to_analyze #.&& (sim_number_backscatter_ratio .> 0.3)
-
-    idxs = findall(idxs)
     
-    red_idxs = (lc_n_sectors .== 6) .&& n_idxs_to_analyze
+    red_idxs = (alc_n_sectors .== 6) .&& n_idxs_to_analyze
     blue_idxs = (.!red_idxs) .&& n_idxs_to_analyze
 
     scatter!([number_backscatter_ratio[red_idxs]], [sim_number_backscatter_ratio[red_idxs]],
@@ -1127,7 +1152,6 @@ function meow()
         dpi = 300
     )
     display("image/png", plot!())
-
 
     #=
     idxs = n_idxs_to_analyze .&& (sim_number_backscatter_ratio .> 0.3)

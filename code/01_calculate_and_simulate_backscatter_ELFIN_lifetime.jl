@@ -82,12 +82,26 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
         trapped_limits = (α_lc, α_alc)
         anti_loss_cone_limits = (α_alc + cone_standoff_angle, 180)
         downgoing_limits = (0, 90)
+
+
+
+        loss_cone_limits = (0, 90)
+        anti_loss_cone_limits = (90, 180)
+
+
     else 
         # Southern hemisphere
         loss_cone_limits = (α_lc + cone_standoff_angle, 180)
         trapped_limits = (α_alc, α_lc)
         anti_loss_cone_limits = (0, α_alc - cone_standoff_angle)
         downgoing_limits = (90, 180)
+
+
+
+        loss_cone_limits = (90, 180)
+        anti_loss_cone_limits = (0, 90)
+
+
     end
 
     # Get data-derived values

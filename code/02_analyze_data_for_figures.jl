@@ -16,7 +16,7 @@ include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Visualization.jl")
 include("$(TOP_LEVEL)/code/General_Functions.jl")
 include("$(TOP_LEVEL)/code/G4EPP_2.0/Frontend_Functions.jl")
 
-const RESULTS_FILENAME = "ELFIN_backscatter_and_simulation.csv"
+const RESULTS_FILENAME = "ELFIN_backscatter_and_simulation_no_azimuth_correction_half_fov_standoff.csv"
 
 function save_backscatter_figure_data(;
     backscatter_ratio_maximum_absolute_error = .025
@@ -60,6 +60,8 @@ function save_backscatter_figure_data(;
     sim_energy_backscatter_ratio = sim_anti_loss_cone_eflux ./ loss_cone_eflux
     sim_number_backscatter_ratio = sim_anti_loss_cone_nflux ./ loss_cone_nflux
 
+    JoverJ90 = loss_cone_nflux ./ trapped_nflux
+
     # Error data
     lc_relative_error = data[:,14]
     alc_relative_error = data[:,16]
@@ -76,7 +78,7 @@ function save_backscatter_figure_data(;
     @assert all(diff(backscatter_bin_edges) .≈ backscatter_bin_spacing)
 
     # Find bad data
-    bad_data_idxs = (loss_cone_nflux .≥ 10^4.5) .&& (number_backscatter_ratio .> 0.85)
+    bad_data_idxs = (-0.5 .< log10.(JoverJ90)) .&& (0.9 .< number_backscatter_ratio)
     good_data_idxs = .!bad_data_idxs
     println("Removed $(sum(Δt[bad_data_idxs])/60) minutes of bad data.\n")
 
@@ -140,8 +142,6 @@ function save_backscatter_figure_data(;
     )
 
     # Precipitation strength figure
-    JoverJ90 = loss_cone_nflux ./ trapped_nflux
-
     JoverJ90_bin_edges = 10.0 .^ (-4:.1:1)
     backscatter_bin_edges = -.025:.025:2
 
