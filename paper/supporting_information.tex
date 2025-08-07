@@ -25,8 +25,8 @@
 
 \renewcommand{\thefootnote}{\roman{footnote}} % Make footnotes numbered
 
-\newcommand{\dataselectiontime}{$201$ hours ($254,838$ spacecraft spins) }
-\newcommand{\backscattertime}{$26$ hours ($33,366$ spacecraft spins) }
+\newcommand{\dataselectiontime}{$231$ hours ($255,447$ spacecraft spins) }
+\newcommand{\backscattertime}{$63$ hours ($69,510$ spacecraft spins) }
 
 % Package includes
 \usepackage[utf8]{inputenc}
@@ -141,8 +141,8 @@ First we find the median backscatter ratio for every $J_\text{precip}/J_\text{tr
 We then fit a power law to each curve using a least-squares regression. The formulae for these fits and their coefficient of determination $R^2$ are given below.
 
 \begin{align*}
-  r_N &= 0.040830269 \cdot \left( \frac{J_\text{precip}}{J_\text{trap}} \right)^{-0.79919772} & R^2 = 0.96791982 \\
-  r_E &= 0.038590361 \cdot \left( \frac{J_\text{precip}}{J_\text{trap}} \right)^{-0.81686408} & R^2 = 0.98398356
+r_N &= 0.068299421 \cdot \left( \frac{J_\text{precip}}{J_\text{trap}} \right)^{-0.73878583} & R^2 = 0.99336882 \\
+r_E &= 0.05627575 \cdot \left( \frac{J_\text{precip}}{J_\text{trap}} \right)^{-0.84640575} & R^2 = 0.98450499
 \end{align*}
 
 These fits are plotted over the data in Figure \ref{figure:curvefit} below.

@@ -16,7 +16,7 @@ include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Visualization.jl")
 include("$(TOP_LEVEL)/code/General_Functions.jl")
 include("$(TOP_LEVEL)/code/G4EPP_2.0/Frontend_Functions.jl")
 
-const RESULTS_FILENAME = "ELFIN_backscatter_and_simulation_no_azimuth_correction_half_fov_standoff.csv"
+const RESULTS_FILENAME = "_backup_ELFIN_backscatter_and_simulation.csv"
 
 function save_backscatter_figure_data(;
     backscatter_ratio_maximum_absolute_error = .025
@@ -79,7 +79,6 @@ function save_backscatter_figure_data(;
     uncertainty_energy_backscatter_ratio = abs.(energy_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
     uncertainty_number_backscatter_ratio = abs.(number_backscatter_ratio) .* sqrt.(alc_relative_error.^2 .+ lc_relative_error.^2)
 
-
     # Save figure data
     nflux_bin_edges = 10.0.^(-2:.15:9)
     backscatter_bin_spacing = .025
@@ -106,7 +105,7 @@ function save_backscatter_figure_data(;
     # Save data coverage
     MLT_bin_edges = 0:1:24
     L_bin_edges = 0:1:10
-    coverage = exact_2dhistogram(MLT_start[n_idxs_to_analyze], L_start[n_idxs_to_analyze], MLT_bin_edges, L_bin_edges)
+    coverage = exact_2dhistogram(MLT_start[n_idxs_to_analyze], L_start[n_idxs_to_analyze], MLT_bin_edges, L_bin_edges, weights = Δt[n_idxs_to_analyze])
 
     npzwrite("$(TOP_LEVEL)/data/figure_data/data_coverage.npz",
         MLT_bin_edges = MLT_bin_edges,
@@ -374,19 +373,9 @@ function save_beam_weighting_procedure()
 
     # Convert to counts
     data_counts = [data_nfluence[E,α] .* ΔE[E] .* ELFIN_GEOMETRIC_FACTOR for E in 1:16, α in 1:16]
-
-    # Scale for phase correction
-    pa_min = event.avg_pitch_angles .- (ELFIN_EPD_FOV/2)
-    pa_max = event.avg_pitch_angles .+ (ELFIN_EPD_FOV/2)
-    Ω_elfin_epd = 2π * (1 - cosd(ELFIN_EPD_FOV/2))
-    Ω_G4EPP = 2π * (cosd.(pa_min) .- cosd.(pa_max))
-    G4EPP_to_ELFIN_scaling_factor = Ω_elfin_epd ./ Ω_G4EPP
-
     backscatter_input_distribution = copy(data_counts)
-    #[backscatter_input_distribution[E,:] ./= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
-    # Cull non-loss cone inputs
-    #lc_idxs = 0 .< event.avg_pitch_angles .< event.avg_loss_cone_angle - (ELFIN_EPD_FOV/2)
+    # Cull non-downgoing inputs
     lc_idxs = 0 .< event.avg_pitch_angles .< 90
     culled_backscatter_input_distribution = copy(backscatter_input_distribution)
     culled_backscatter_input_distribution[:, .!lc_idxs] .= 0
@@ -398,15 +387,9 @@ function save_beam_weighting_procedure()
 
     # Get backscatter
     backscatter_counts = simulate_backscatter(distro)
-    
-    # Phase-correct back to ELFIN's view
-    corrected_backscatter_counts = copy(backscatter_counts)
-    #[corrected_backscatter_counts[E,:] .*= G4EPP_to_ELFIN_scaling_factor for E in 1:16]
 
     # Cull parts we aren't comparing
-    #cull_below = event.avg_anti_loss_cone_angle + (ELFIN_EPD_FOV/2)
-    cull_below = 90# event.avg_anti_loss_cone_angle
-    cull_idxs = event.avg_pitch_angles .< cull_below
+    cull_idxs = event.avg_pitch_angles .< 90
 
     npzwrite("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz",
         avg_pitch_angles = event.avg_pitch_angles,
@@ -419,7 +402,6 @@ function save_beam_weighting_procedure()
         beam_pitch_angles = beam_pitch_angles,
         beam_weights = beam_weights,
         backscatter_counts = backscatter_counts,
-        corrected_backscatter_counts = corrected_backscatter_counts,
         cull_idxs = cull_idxs
     )
     println("Done")
@@ -448,6 +430,58 @@ function save_backscattered_pads()
         high_energy = high_energy,
         high_energy_pad_weights = high_energy_pad_weights
     )
+    println("Done")
+end
+
+function save_data_model_events()
+    print("Saving data-model comparison events... ")
+
+    names = ["over", "under", "equal"]
+    starts = DateTime.(["2022-09-08T04:24:32.827", "2022-03-01T12:20:52.314", "2022-02-23T11:59:46.174"])
+    stops = DateTime.(["2022-09-08T04:24:41.689", "2022-03-01T12:21:18.013", "2022-02-23T11:59:54.630"])
+    sats = ["A", "B", "A"]
+
+    to_save = Dict{String, Any}()
+    for i in eachindex(names)
+        event = create_event(starts[i], stops[i], sats[i], maximum_relative_error = 0.5)
+        
+        # Get data fluence
+        ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # MeV
+        _, data_nfluence = integrate_flux(event, time = true)
+
+        # Convert to counts
+        data_counts = [data_nfluence[E,α] .* ΔE[E] .* ELFIN_GEOMETRIC_FACTOR for E in 1:16, α in 1:16]
+        backscatter_input_distribution = copy(data_counts)
+
+        # Cull non-downgoing inputs
+        lc_idxs = 0 .< event.avg_pitch_angles .< 90
+        culled_backscatter_input_distribution = copy(backscatter_input_distribution)
+        culled_backscatter_input_distribution[:, .!lc_idxs] .= 0
+
+        # Get beam locations and weights
+        beam_energies, beam_pitch_angles = _get_beam_locations()
+        distro = create_distribution(event.energy_bins_min, event.energy_bins_max, event.avg_pitch_angles .- (ELFIN_EPD_FOV/2), event.avg_pitch_angles .+ (ELFIN_EPD_FOV/2), culled_backscatter_input_distribution, "counts")
+        beam_weights = _counts_to_beam_weights(distro)
+
+        # Get backscatter
+        sim_counts = simulate_backscatter(distro)
+
+        # Cull parts we aren't comparing
+        cull_idxs = event.avg_pitch_angles .< 90
+
+        # Get alc amounts
+        α_alc = event.avg_anti_loss_cone_angle + (ELFIN_EPD_FOV/2)
+        alc_idxs = event.avg_pitch_angles .> α_alc
+
+        to_save["$(names[i])_alc_pitch_angle"] = α_alc
+        to_save["$(names[i])_alc_idxs"] = alc_idxs
+        to_save["$(names[i])_pitch_angles"] = event.avg_pitch_angles
+        to_save["$(names[i])_energies"] = event.energy_bins_mean
+        to_save["$(names[i])_data_counts"] = data_counts
+        to_save["$(names[i])_sim_counts"] = sim_counts
+
+    end
+    npzwrite("$(TOP_LEVEL)/data/figure_data/data_model_events.npz", to_save)
     println("Done")
 end
 
@@ -590,6 +624,7 @@ end
 
 save_backscatter_figure_data()
 save_example_events()
+save_data_model_events()
 save_g4epp_predictions()
 save_beam_weighting_procedure()
 save_backscattered_pads()

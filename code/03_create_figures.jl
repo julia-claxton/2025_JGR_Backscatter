@@ -71,14 +71,14 @@ function figure_data_coverage()
 
     to_plot = coverage'
     to_plot = replace(to_plot, -Inf => -100) # Make regions of no coverage black rather than transparent
-    heatmap(MLT_bin_edges_rad, L_bin_edges, to_plot,
+    heatmap(MLT_bin_edges_rad, L_bin_edges, to_plot./60,
         projection = :polar,
         axis = false,
 
         ylims = (0, 10),
 
-        colorbar_title = "# Data Segments",
-        clims = (0, 150),
+        colorbar_title = "Time, min",
+        clims = (0, 45),
         colormap = :ice,
 
         size = (1.3, 1) .* 500,
@@ -169,7 +169,6 @@ function figure_beam_weighting()
     beam_pitch_angles = data["beam_pitch_angles"]
     beam_weights = data["beam_weights"]
     backscatter_counts = data["backscatter_counts"]
-    corrected_backscatter_counts = data["corrected_backscatter_counts"]
     cull_idxs = data["cull_idxs"]
 
     plot_distribution(avg_energies, avg_pitch_angles, data_nfluence, :magma)
@@ -193,7 +192,7 @@ function figure_beam_weighting()
     plot_distribution(avg_energies, avg_pitch_angles, backscatter_input_distribution, :ice)
     beams_to_plot = beam_weights .≠ 0
     scatter!(beam_pitch_angles[beams_to_plot], beam_energies[beams_to_plot],
-        title = "3) Azimuth Scale, Assign Beam Weights",
+        title = "3) Assign Beam Weights",
 
         label = false,
         zcolor = log10.(beam_weights[beams_to_plot]),
@@ -201,14 +200,14 @@ function figure_beam_weighting()
 
         colormap = :ice,
         colorbar_title = "Log10 Electron Count, #",
-        clims = count_clims .+ 1,
+        clims = count_clims,
         leftmargin = 10mm
     )
     p3 = plot!()
 
-    plot_distribution(avg_energies, avg_pitch_angles[.!cull_idxs], corrected_backscatter_counts[:, .!cull_idxs], :ice)
+    plot_distribution(avg_energies, avg_pitch_angles[.!cull_idxs], backscatter_counts[:, .!cull_idxs], :ice)
     plot!(
-        title = "4) Look Up Backscatter, Azimuth De-Scale",
+        title = "4) Look Up Backscatter",
         colorbar_title = "Log10 Electron Fluence, #",
         clims = count_clims
     )
@@ -473,6 +472,26 @@ function figure_data_model_comparison()
     annotate!((-0.5, 5.0, text("Overestimation", :white, :left)))
     display(plot!())
     png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")
+end
+
+function figure_data_model_event_examples()
+    names = ["over", "under", "equal"]
+    starts = DateTime.(["2022-09-08T04:24:32.827", "2022-03-01T12:20:52.314", "2022-02-23T11:59:46.174"])
+    stops = DateTime.(["2022-09-08T04:24:41.689", "2022-03-01T12:21:18.013", "2022-02-23T11:59:54.630"])
+    sats = ["A", "B", "A"]
+    data = npzread("$(TOP_LEVEL)/data/figure_data/data_model_events.npz")
+
+    plots = []
+    for i in 1:3
+        push!(plots, plot_data_vs_model_event(data, names[i], starts[i], stops[i], sats[i]))
+    end
+
+    plot(plots...,
+        layout = (3, 1),
+        size = (1.4, 1.7) .* 700
+    )
+    png("$(TOP_LEVEL)/paper/figures/data_model_comparison_examples.png")
+    display(plot!())
 end
 
 function figure_predicted_backscatter()
@@ -1035,6 +1054,86 @@ function plot_precipitation_curve!(x, y)
     return plot!()
 end
 
+function plot_data_vs_model_event(data, prefix, start, stop, sat)
+    alc_pitch_angle = data["$(prefix)_alc_pitch_angle"]
+    alc_idxs        = data["$(prefix)_alc_idxs"]
+    pitch_angles    = data["$(prefix)_pitch_angles"]
+    energies        = data["$(prefix)_energies"]
+    data_counts     = data["$(prefix)_data_counts"]
+    sim_counts      = data["$(prefix)_sim_counts"]
+
+    alc_counts_data = sum(data_counts[:,alc_idxs])
+    alc_counts_sim = sum(sim_counts[:,alc_idxs])
+
+
+    heatmap(pitch_angles, energies, log10.(data_counts),
+        xlabel = "Pitch Angle, deg",
+        xlims = (0, 180),
+
+        ylabel = "Energy, kev",
+        ylims = (50, 6500),
+        yscale = :log10,
+        yminorticks = 10,
+
+        colorbar_title = "Data Counts, # electrons",
+        clims = (1, log10.(max(sim_counts...))),
+        colormap = :ice,
+
+        framestyle = :box,
+        tickdirection = :out,
+        background_color_inside = :black
+    )
+    vline!([alc_pitch_angle],
+        label = false,
+        linecolor = RGB(0xff006a),
+        style = :dash,
+        linewidth = 2.5
+    )
+    annotate!((10, 4000, text("# ALC = $(Int(round(alc_counts_data)))", :white, :left)))
+    box_aspect!(1)
+    p1 = plot!()
+
+    heatmap(pitch_angles, energies, log10.(sim_counts),
+        xlabel = "Pitch Angle, deg",
+        xlims = (0, 180),
+
+        ylabel = "Energy, kev",
+        ylims = (50, 6500),
+        yscale = :log10,
+        yminorticks = 10,
+
+        colorbar_title = "Simulation Counts, # electrons",
+        clims = (1, log10.(max(sim_counts...))),
+        colormap = :ice,
+
+        framestyle = :box,
+        tickdirection = :out,
+        background_color_inside = :black
+    )
+    vline!([alc_pitch_angle],
+        label = false,
+        linecolor = RGB(0xff006a),
+        style = :dash,
+        linewidth = 2.5
+    )
+    annotate!((10, 4000, text("# ALC = $(Int(round(alc_counts_sim)))", :white, :left)))
+    box_aspect!(1)
+    p2 = plot!()
+
+    start_string = "$(Hour(start).value):$(Minute(start).value):$(Second(start).value)"
+    stop_string = "$(Hour(stop).value):$(Minute(stop).value):$(Second(stop).value)"
+    plot(p1, p2,
+        suptitle = "$(Date(start)) $(start_string) – $(stop_string) EL$(sat)",
+        layout = (1, 2),
+        leftmargin = 5mm,
+        topmargin = -10mm,
+        background_color = :transparent,
+        size = (1.7, .7) .* 500,
+        dpi = 400
+    )
+    return plot!()
+end
+
 
 """
 ======================================
@@ -1042,7 +1141,7 @@ Figure Generation
 ======================================
 """
 
-figure_data_model_comparison()
+figure_elfin_backscatter_vs_nflux()
 error()
 
 figure_elfin_data()
@@ -1054,6 +1153,7 @@ figure_filling_vs_backscatter()
 
 figure_beam_weighting()
 figure_data_model_comparison()
+figure_data_model_event_examples()
 figure_predicted_backscatter()
 figure_backscattered_pads()
 
