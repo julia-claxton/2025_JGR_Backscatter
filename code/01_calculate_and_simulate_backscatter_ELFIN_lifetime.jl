@@ -11,9 +11,8 @@ using BenchmarkTools, Profile, TickTock
 # Run with max threads
 # julia --threads 10 /Users/luna/Research/Backscatter_Analysis/code/01_calculate_and_simulate_backscatter_ELFIN_lifetime.jl
 
-results_file_threadlock = ReentrantLock()
-days_completed_threadlock = ReentrantLock()
-progress_bar_threadlock = ReentrantLock()
+write_threadlock  = ReentrantLock()
+stdout_threadlock = ReentrantLock()
 
 function write_elfin_lifetime_backscatter_data(;
     slice_length_idx = 3,
@@ -31,11 +30,8 @@ function write_elfin_lifetime_backscatter_data(;
     println("Calculating backscatter statistics and simulating events over ELFIN lifetime (Δidx = $(slice_length_idx))")
     dates, sats = all_elfin_science_dates_and_satellite_ids()
     days_analyzed = 0
+    print_progress_bar(0, bar_length = 50)
     Threads.@threads for i in eachindex(dates)
-        lock(progress_bar_threadlock) do
-            print_progress_bar(days_analyzed/length(dates), bar_length = 50)
-        end
-
         fullday_event = create_event(dates[i], sats[i])
         if fullday_event == nothing; continue; end
         if fullday_event.data_reliable == false; continue; end
@@ -56,9 +52,10 @@ function write_elfin_lifetime_backscatter_data(;
             [log_backscatter_data(event, result_path, start_idxs[i], stop_idxs[i], maximum_relative_error) for i in eachindex(start_idxs)]
         end
 
-        # Updated completion counter
-        lock(days_completed_threadlock) do
-           days_analyzed += 1 
+        # Write to terminal
+        lock(stdout_threadlock) do
+            days_analyzed += 1 
+            print_progress_bar(days_analyzed/length(dates), bar_length = 50)
         end
 
         if i % 40 == 0; GC.gc(); end
@@ -81,7 +78,6 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
 
     # Get northern hemisphere equivalent anti-loss cone angle for simulation
     cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
-    α_backscatter = max(α_alc, 180-α_alc) + cone_standoff_angle
     
     # Get loss cone, trapped, and anti-loss cone region bounds
     if α_lc < 90 
@@ -170,7 +166,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     end
 
     # Simulate backscatter
-    sim_alc_number, sim_alc_energy = simulate_elfin_backscatter(event, α_center, data_counts, α_backscatter)
+    sim_alc_number, sim_alc_energy = simulate_elfin_backscatter(event, α_center, data_counts, alc_mask)
     
     # Write results to file
     event_data = "$(event.time_datetime[start_idx]),$(event.time_datetime[stop_idx]+Microsecond(ELFIN_SPIN_PERIOD*1e6)),$(event.satellite),$(event.L[start_idx]),$(event.L[stop_idx]),$(event.MLT[start_idx]),$(event.MLT[stop_idx])"
@@ -181,7 +177,7 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     sim_data = "$(sim_alc_energy),$(sim_alc_number)"
     n_idxs = "$(sum(lc_mask)),$(sum(alc_mask))"
     
-    lock(results_file_threadlock) do
+    lock(write_threadlock) do
         file = open(results_path, "a")
         write(file, "$(event_data),$(lc_data),$(trap_data),$(alc_data),$(error_data),$(sim_data),$(n_idxs)\n")
         close(file)
@@ -189,17 +185,19 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     return
 end
 
-function simulate_elfin_backscatter(event::Event, α_center, data_counts, α_backscatter)
-    @assert α_backscatter > 90 # Lookup tables are for the Northern hemisphere
-
+function simulate_elfin_backscatter(event::Event, α_center, data_counts, alc_mask)
     # Get locations of precomputed beams
     beam_energies, beam_pitch_angles = get_beam_locations()
     beam_energies     = sort(unique(beam_energies))
     beam_pitch_angles = sort(unique(beam_pitch_angles))
 
+    # array for every elfin E/PA bin in the alc
+    # alpha center for each of those bins
+
     # Get backscatter
-    number_backscattered = 0
-    energy_backscattered = 0
+    sim_alc_counts = zeros(size(data_counts[:,alc_mask]))
+    
+    # Iterate over ELFIN's downgoing bins
     for E_idx in 1:16
         for α_idx in 1:16
             # Get energy and pitch angle of this bin
@@ -212,23 +210,91 @@ function simulate_elfin_backscatter(event::Event, α_center, data_counts, α_bac
 
             # Get nearest beam
             _, nearest_beam_energy_idx = findmin(abs.(beam_energies .- E))
-            _, nearest_beam_pitch_angle_idx = findmin(abs.(beam_pitch_angles .- α))
-
             nearest_beam_energy = beam_energies[nearest_beam_energy_idx]
+            
+            _, nearest_beam_pitch_angle_idx = findmin(abs.(beam_pitch_angles .- α))
             nearest_beam_pitch_angle = beam_pitch_angles[nearest_beam_pitch_angle_idx]
 
+            beam_weight = data_counts[E_idx, α_idx]
+
+
+
+            get_beam_contribution_to_backscatter(event, nearest_beam_energy, nearest_beam_pitch_angle, α_center[alc_mask])
+
+            error()
+
+
+
+
+
+
+
+
+
+            #=
             # Look up associated backscatter
             backscatter_data, n_input_particles, _ = find_datafile("processed", "backscatter", "electron", nearest_beam_energy, nearest_beam_pitch_angle)
             
             # Add backscatter to counter
-            beam_weight = data_counts[E_idx, α_idx]
             backscatter_mask = backscatter_data["electron_pitch_angles"] .≥ α_backscatter
             number_backscattered += beam_weight * (sum(backscatter_mask)/n_input_particles)
             energy_backscattered += beam_weight * (sum(backscatter_data["electron_energies"][backscatter_mask])/n_input_particles)
+            =#
         end
     end
     return number_backscattered, energy_backscattered
 end
+
+function get_beam_contribution_to_backscatter(event::Event, nearest_beam_energy, nearest_beam_pitch_angle, α_detector)
+    
+    
+
+    # for every E/PA bin in the alc, get the backscatter there from global table 
+    # add the backscatter to alc results array
+    # return total ALC contribution (every elfin bin in alc) for this one beam
+
+    α_idx = 1 # ELFIN indexes
+    E_idx = 1
+
+
+    virtual_detector_number = detect_backscatter(nearest_beam_energy, nearest_beam_pitch_angle, α_detector[α_idx],
+        detector_Emin = event.energy_bins_min[E_idx],
+        detector_Emax = event.energy_bins_max[E_idx]
+    )
+
+
+    @show virtual_detector_number
+
+
+
+
+
+
+
+
+
+    error( "TODO WRITE ME" )
+end
+
+function detect_backscatter(beam_energy, beam_pitch_angle, detector_α; detector_Emin = -Inf, detector_Emax = Inf)
+    # Get backscatter data
+    global backscatter_momentum_data
+    magnetic_momenta = backscatter_momentum_data["$(beam_energy)keV_$(beam_pitch_angle)deg_momenta"]
+    energies = backscatter_momentum_data["$(beam_energy)keV_$(beam_pitch_angle)deg_energies"]
+
+    # Construct virtual EPD
+    EPD_FOV = 22.5 # Detector field of view, deg
+    detector_boresight = get_detector_look_direction(detector_α)
+    detection_mask = (
+        (acosd.(dot.([detector_boresight], magnetic_momenta)) .< (EPD_FOV/2))
+        .&& (detector_Emin .< energies .< detector_Emax)
+    )
+
+    # Return
+    number_detected = sum(detection_mask) / 1e5
+    return number_detected
+end
+
 
 function find_datafile(data_type, file_prefix, input_particle, beam_energy, beam_pitch_angle; quiet = false)
     # Get the file corresponding to this prefix, energy, and pitch angle. If there are multiple files that have different numbers of input
@@ -282,12 +348,96 @@ function get_beam_locations()
     return beam_energies, beam_pitch_angles
 end
 
+function get_backscattered_magnetic_momenta_and_energies(input_energy, input_pitch_angle)
+    # Read data
+    data = readdlm("$(TOP_LEVEL)/code/G4EPP_2.0/data/raw/backscatter_electron_input_$(float(input_energy))keV_$(float(input_pitch_angle))deg_100000particles.csv", ',', skipstart = 1)
+    electron_mask = data[:,1] .== "e-"
 
+    energy = data[electron_mask, 2]
+    position = eachrow(data[electron_mask, 7:9])
+    momentum = eachrow(data[electron_mask, 4:6])
+    B = get_B.(position)
+    unit_B = B ./ norm.(B)
 
+    # Define the magnetic frame
+    # Define it such that the X axis is always parallel to the ground, the Z axis points along B, and Y completes the set.
+    Z_world = [0, 0, 1]
+    Z_magnetic = copy(unit_B)
 
+    X_magnetic = Z_magnetic .× [Z_world]
+    X_magnetic ./= norm.(X_magnetic)
+
+    Y_magnetic = Z_magnetic .× X_magnetic
+
+    # Convert momentum to the magnetic frame
+    momentum_magnetic = [[
+        momentum[i] ⋅ X_magnetic[i],
+        momentum[i] ⋅ Y_magnetic[i],
+        momentum[i] ⋅ Z_magnetic[i]
+        ] for i in eachindex(momentum)
+    ]
+    return momentum_magnetic, energy
+end
+
+function get_B(r_origin_to_particle)
+    # Constants
+    μ0 = 1.257e-6
+    MLAT = 65.77 # degrees
+    m = [0, -6.4e22 * cosd(MLAT), -6.4e22 * sind(MLAT)] # Earth magnetic moment vector
+
+    # Get position vector to Earth center
+    Re = 6371e3 # Earth radius, m
+    r = [0, 0, Re] + r_origin_to_particle # Position vector of Earth to particle. Units: m
+
+    # Calculate dipole field
+    return (μ0/(4π)) * ( ((3 * dot(m,r) .* r) / (norm(r)^5)) - (m/(norm(r)^3)) )
+end
+
+function get_detector_look_direction(detector_α)
+    # Get look direction in the magnetic frame for a given pitch angle
+    detector_ϕ = 0 # Virtual detector azimuth angle, deg.
+
+    return [
+        sind(detector_α)*cosd(detector_ϕ),
+        sind(detector_α)*sind(detector_ϕ),
+        cosd(detector_α)
+    ]
+end
+
+function load_all_backscatter_into_memory()
+    # Get locations of precomputed beams
+    beam_energies, beam_pitch_angles = get_beam_locations()
+    beam_energies     = sort(unique(beam_energies))
+    beam_pitch_angles = sort(unique(beam_pitch_angles))
+
+    # Iterate and store
+    println("Loading backscatter momenta into memory...")
+    beams_finished = 0
+    total_beams = length(beam_energies) * length(beam_pitch_angles)
+    backscatter_data = Dict()
+    Threads.@threads for E in round.(beam_energies)
+        for α in round.(beam_pitch_angles)
+            magnetic_momenta, energies = get_backscattered_magnetic_momenta_and_energies(E, α)
+            
+            # Write to dict (safely!)
+            lock(write_threadlock) do
+                backscatter_data["$(E)keV_$(α)deg_momenta"] = magnetic_momenta
+                backscatter_data["$(E)keV_$(α)deg_energies"] = energies
+            end
+
+            # Print progress to terminal
+            lock(stdout_threadlock) do
+                beams_finished += 1
+                print_progress_bar(beams_finished/total_beams)
+            end
+        end
+    end
+    return backscatter_data
+end
 
 
 tick()
+# Preload backscatter data
+const global backscatter_momentum_data = load_all_backscatter_into_memory() # Globals are hacky but I want this to be accessible in any scope without passing it as an argument to literally everything
 write_elfin_lifetime_backscatter_data()
 tock()
-
