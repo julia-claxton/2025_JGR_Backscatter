@@ -16,7 +16,7 @@ include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Visualization.jl")
 include("$(TOP_LEVEL)/code/General_Functions.jl")
 include("$(TOP_LEVEL)/code/G4EPP_2.0/Frontend_Functions.jl")
 
-const RESULTS_FILENAME = "_backup_ELFIN_backscatter_and_simulation.csv"
+const RESULTS_FILENAME = "ELFIN_backscatter_and_simulation.csv"
 
 function save_backscatter_figure_data(;
     backscatter_ratio_maximum_absolute_error = .025
@@ -121,13 +121,6 @@ function save_backscatter_figure_data(;
     sim_e_frequencies = exact_2dhistogram(loss_cone_nflux[e_idxs_to_analyze], sim_energy_backscatter_ratio[e_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges)
     sim_n_frequencies = exact_2dhistogram(loss_cone_nflux[n_idxs_to_analyze], sim_number_backscatter_ratio[n_idxs_to_analyze], nflux_bin_edges, backscatter_bin_edges)
 
-    # Create copy of these histograms that is normalized to integrate to unity at every flux level (1st dimension)
-    normalized_n_frequencies = normalize_1st_dimension_to_unity(backscatter_bin_edges, n_frequencies)
-    normalized_e_frequencies = normalize_1st_dimension_to_unity(backscatter_bin_edges, e_frequencies)
-
-    sim_normalized_n_frequencies = normalize_1st_dimension_to_unity(backscatter_bin_edges, sim_n_frequencies)
-    sim_normalized_e_frequencies = normalize_1st_dimension_to_unity(backscatter_bin_edges, sim_e_frequencies)
-
     npzwrite("$(TOP_LEVEL)/data/figure_data/ELFIN_lifetime_backscatter.npz",
         backscatter_ratio_maximum_absolute_error = backscatter_ratio_maximum_absolute_error,
         total_time = sum(Δt[n_idxs_to_analyze]),
@@ -136,16 +129,9 @@ function save_backscatter_figure_data(;
         backscatter_bin_edges = backscatter_bin_edges,
 
         e_frequencies = e_frequencies,
-        normalized_e_frequencies = normalized_e_frequencies,
-
         n_frequencies = n_frequencies,
-        normalized_n_frequencies = normalized_n_frequencies, 
-
         sim_e_frequencies = sim_e_frequencies,
-        sim_normalized_e_frequencies = sim_normalized_e_frequencies,
-
         sim_n_frequencies = sim_n_frequencies,
-        sim_normalized_n_frequencies = sim_normalized_n_frequencies,
     )
 
     # Precipitation strength figure
@@ -621,6 +607,9 @@ function quantile_index(v, q)
     idx = findfirst(normalized_cdf .> q)
     return idx
 end
+
+save_backscatter_figure_data()
+error()
 
 save_backscatter_figure_data()
 save_example_events()

@@ -166,7 +166,17 @@ function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, m
     end
 
     # Simulate backscatter
-    sim_alc_number, sim_alc_energy = simulate_elfin_backscatter(event, α_center, data_counts, alc_mask)
+    sim_backscatter_number, sim_backscatter_energy = simulate_elfin_backscatter(event, α_center, data_counts, alc_mask)
+
+    # Cut out bins that would've been discarded in ELFIN data due to low counts
+    # Using δq/q ≈ 1/√counts (shot noise), which is what ELFIN does
+    sim_relative_error = 1 ./ sqrt.(sim_backscatter_number)
+    sim_backscatter_number[sim_relative_error .> maximum_relative_error] .= 0
+    sim_backscatter_energy[sim_relative_error .> maximum_relative_error] .= 0
+
+    # Get totals
+    sim_alc_number = sum(sim_backscatter_number)
+    sim_alc_energy = sum(sim_backscatter_energy)
     
     # Write results to file
     event_data = "$(event.time_datetime[start_idx]),$(event.time_datetime[stop_idx]+Microsecond(ELFIN_SPIN_PERIOD*1e6)),$(event.satellite),$(event.L[start_idx]),$(event.L[stop_idx]),$(event.MLT[start_idx]),$(event.MLT[stop_idx])"
@@ -191,13 +201,8 @@ function simulate_elfin_backscatter(event::Event, α_center, data_counts, alc_ma
     beam_energies     = sort(unique(beam_energies))
     beam_pitch_angles = sort(unique(beam_pitch_angles))
 
-    # array for every elfin E/PA bin in the alc
-    # alpha center for each of those bins
-
-    # Get backscatter
-    sim_alc_counts = zeros(size(data_counts[:,alc_mask]))
-    
     # Iterate over ELFIN's downgoing bins
+    sim_alc_counts = zeros(size(data_counts[:,alc_mask]))
     for E_idx in 1:16
         for α_idx in 1:16
             # Get energy and pitch angle of this bin
@@ -215,65 +220,35 @@ function simulate_elfin_backscatter(event::Event, α_center, data_counts, alc_ma
             _, nearest_beam_pitch_angle_idx = findmin(abs.(beam_pitch_angles .- α))
             nearest_beam_pitch_angle = beam_pitch_angles[nearest_beam_pitch_angle_idx]
 
-            beam_weight = data_counts[E_idx, α_idx]
-
-
-
-            get_beam_contribution_to_backscatter(event, nearest_beam_energy, nearest_beam_pitch_angle, α_center[alc_mask])
-
-            error()
-
-
-
-
-
-
-
-
-
-            #=
-            # Look up associated backscatter
-            backscatter_data, n_input_particles, _ = find_datafile("processed", "backscatter", "electron", nearest_beam_energy, nearest_beam_pitch_angle)
-            
-            # Add backscatter to counter
-            backscatter_mask = backscatter_data["electron_pitch_angles"] .≥ α_backscatter
-            number_backscattered += beam_weight * (sum(backscatter_mask)/n_input_particles)
-            energy_backscattered += beam_weight * (sum(backscatter_data["electron_energies"][backscatter_mask])/n_input_particles)
-            =#
+            # Get counts
+            beam_weight = data_counts[E_idx, α_idx] * azimuth_scaling_factor(α)
+            sim_alc_counts .+= get_beam_backscatter(event, beam_weight, nearest_beam_energy, nearest_beam_pitch_angle, α_center[alc_mask])
         end
     end
-    return number_backscattered, energy_backscattered
+    sim_alc_energy = [sim_alc_counts[E,α] .* event.energy_bins_mean[E] for E in 1:16, α in 1:size(sim_alc_counts)[2]]
+    return sim_alc_counts, sim_alc_energy
 end
 
-function get_beam_contribution_to_backscatter(event::Event, nearest_beam_energy, nearest_beam_pitch_angle, α_detector)
-    
-    
-
-    # for every E/PA bin in the alc, get the backscatter there from global table 
-    # add the backscatter to alc results array
-    # return total ALC contribution (every elfin bin in alc) for this one beam
-
-    α_idx = 1 # ELFIN indexes
-    E_idx = 1
+function azimuth_scaling_factor(α)
+    Ω_elfin_epd = 2π * (1 - cosd(ELFIN_EPD_FOV/2))
+    α_min = clamp(α - ELFIN_EPD_FOV/2, 0, 90)
+    α_max = clamp(α + ELFIN_EPD_FOV/2, 0, 90)
+    Ω_ribbon = 2π * (cosd.(α_min) .- cosd.(α_max))
+    return Ω_ribbon / Ω_elfin_epd
+end
 
 
-    virtual_detector_number = detect_backscatter(nearest_beam_energy, nearest_beam_pitch_angle, α_detector[α_idx],
-        detector_Emin = event.energy_bins_min[E_idx],
-        detector_Emax = event.energy_bins_max[E_idx]
-    )
-
-
-    @show virtual_detector_number
-
-
-
-
-
-
-
-
-
-    error( "TODO WRITE ME" )
+function get_beam_backscatter(event::Event, beam_weight, nearest_beam_energy, nearest_beam_pitch_angle, α_detector)
+    backscatter_number = zeros(length(event.energy_bins_mean), length(α_detector))
+    for E_idx in eachindex(event.energy_bins_mean)
+        for α_idx in eachindex(α_detector)
+            backscatter_number[E_idx, α_idx] = beam_weight * detect_backscatter(nearest_beam_energy, nearest_beam_pitch_angle, α_detector[α_idx],
+                detector_Emin = event.energy_bins_min[E_idx],
+                detector_Emax = event.energy_bins_max[E_idx]
+            )
+        end
+    end
+    return backscatter_number
 end
 
 function detect_backscatter(beam_energy, beam_pitch_angle, detector_α; detector_Emin = -Inf, detector_Emax = Inf)
@@ -286,12 +261,12 @@ function detect_backscatter(beam_energy, beam_pitch_angle, detector_α; detector
     EPD_FOV = 22.5 # Detector field of view, deg
     detector_boresight = get_detector_look_direction(detector_α)
     detection_mask = (
-        (acosd.(dot.([detector_boresight], magnetic_momenta)) .< (EPD_FOV/2))
+        (acosd.(clamp.(dot.([detector_boresight], magnetic_momenta), -1, 1)) .< (EPD_FOV/2))
         .&& (detector_Emin .< energies .< detector_Emax)
     )
 
     # Return
-    number_detected = sum(detection_mask) / 1e5
+    number_detected = sum(detection_mask) / 1e5 # Divide by number of input particles for that beam
     return number_detected
 end
 

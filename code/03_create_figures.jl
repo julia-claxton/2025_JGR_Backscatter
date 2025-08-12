@@ -1141,7 +1141,7 @@ Figure Generation
 ======================================
 """
 
-figure_elfin_backscatter_vs_nflux()
+figure_data_model_comparison()
 error()
 
 figure_elfin_data()
