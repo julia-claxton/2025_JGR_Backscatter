@@ -232,7 +232,7 @@ function simulate_elfin_backscatter(event::Event, α_center, data_counts, alc_ma
     # Iterate over ELFIN's downgoing bins
     sim_alc_counts = zeros(size(data_counts[:,alc_mask]))
     for E_idx in 1:16
-        for α_idx in 1:16
+        for α_idx in 1:2:16
             # Get energy and pitch angle of this bin
             E = event.energy_bins_mean[E_idx]
             α = α_center[α_idx]
@@ -450,4 +450,3 @@ const global backscatter_momentum_data = load_all_backscatter_into_memory() # Gl
 # Do analysis
 main()
 tock()
-
