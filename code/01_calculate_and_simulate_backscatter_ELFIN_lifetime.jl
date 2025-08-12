@@ -14,11 +14,9 @@ using BenchmarkTools, Profile, TickTock
 write_threadlock  = ReentrantLock()
 stdout_threadlock = ReentrantLock()
 
-function write_elfin_lifetime_backscatter_data(;
-    slice_length_idx = 3,
-    result_filename = "ELFIN_backscatter_and_simulation.csv",
-    maximum_relative_error = .5,
-    )
+function main()
+    # Parameters
+    result_filename = "ELFIN_backscatter_and_simulation.csv"
 
     # Create results file
     result_path = "$(dirname(@__DIR__))/data/$(result_filename)"
@@ -27,40 +25,70 @@ function write_elfin_lifetime_backscatter_data(;
     close(file)
 
     # Iterate through ELFIN lifetime
-    println("Calculating backscatter statistics and simulating events over ELFIN lifetime (Δidx = $(slice_length_idx))")
     dates, sats = all_elfin_science_dates_and_satellite_ids()
-    days_analyzed = 0
-    print_progress_bar(0, bar_length = 50)
-    Threads.@threads for i in eachindex(dates)
-        fullday_event = create_event(dates[i], sats[i])
-        if fullday_event == nothing; continue; end
-        if fullday_event.data_reliable == false; continue; end
+    n_dates = length(dates)
+    days_analyzed = zeros(nthreads())
+    iteration_assignments = [id:nthreads():n_dates for id in 1:nthreads()]
 
-        for obs_idx in 1:fullday_event.n_observations
-            start_idx = fullday_event.observation_start_idxs[obs_idx]
-            stop_idx = fullday_event.observation_stop_idxs[obs_idx]
-            event = create_event(fullday_event.time_datetime[start_idx], fullday_event.time_datetime[stop_idx], fullday_event.satellite,
-                maximum_relative_error = maximum_relative_error
-            )
+    Threads.@threads for id in 1:nthreads()
+        # Manually designate iterations assigned to this thread to balance workload between threads
+        # Use interleaving assignments rather than chunking
+        this_thread_idxs =  iteration_assignments[id] # Iterations this thread is responsible for
 
-            if event == nothing; continue; end
-            if event.data_reliable == false; continue; end
-            if event.n_datapoints < slice_length_idx; continue; end
+        # Perform analysis for all days this thread is responsible for
+        for i in eachindex(this_thread_idxs)
+            # Do analysis
+            day_to_analyze = this_thread_idxs[i]
+            write_elfin_backscatter_for_day(dates, sats, day_to_analyze, result_path)
 
-            start_idxs = 1:slice_length_idx:(event.n_datapoints - slice_length_idx)
-            stop_idxs = slice_length_idx:slice_length_idx:event.n_datapoints
-            [log_backscatter_data(event, result_path, start_idxs[i], stop_idxs[i], maximum_relative_error) for i in eachindex(start_idxs)]
+            lock(write_threadlock) do
+                days_analyzed[id] += 1
+                if sum(days_analyzed) % 10 == 0; GC.gc(); end
+                unsafe_print_progress_screen(days_analyzed, iteration_assignments)
+            end
         end
-
-        # Write to terminal
-        lock(stdout_threadlock) do
-            days_analyzed += 1 
-            print_progress_bar(days_analyzed/length(dates), bar_length = 50)
-        end
-
-        if i % 40 == 0; GC.gc(); end
     end
-    println()
+end
+
+function unsafe_print_progress_screen(days_analyzed, iteration_assignments)
+    run(`clear`)
+    println(
+        """
+        ELFIN Lifetime Backscatter Analysis
+        --------------------------------------------------------
+        Computing backscatter and simulation data...
+        """
+    )
+    for i in 1:nthreads()
+        print("Thread $(i)\t")
+        print_progress_bar(days_analyzed[i]/length(iteration_assignments[i]), overwrite = false, bar_length = 30)
+        println()
+    end
+end
+
+function write_elfin_backscatter_for_day(dates, sats, i, result_path)
+    slice_length_idx = 3
+    maximum_relative_error = .5
+
+    fullday_event = create_event(dates[i], sats[i])
+    if fullday_event == nothing; return; end
+    if fullday_event.data_reliable == false; return; end
+
+    for obs_idx in 1:fullday_event.n_observations
+        start_idx = fullday_event.observation_start_idxs[obs_idx]
+        stop_idx = fullday_event.observation_stop_idxs[obs_idx]
+        event = create_event(fullday_event.time_datetime[start_idx], fullday_event.time_datetime[stop_idx], fullday_event.satellite,
+            maximum_relative_error = maximum_relative_error
+        )
+
+        if event == nothing; continue; end
+        if event.data_reliable == false; continue; end
+        if event.n_datapoints < slice_length_idx; continue; end
+
+        start_idxs = 1:slice_length_idx:(event.n_datapoints - slice_length_idx)
+        stop_idxs = slice_length_idx:slice_length_idx:event.n_datapoints
+        [log_backscatter_data(event, result_path, start_idxs[i], stop_idxs[i], maximum_relative_error) for i in eachindex(start_idxs)]
+    end
 end
 
 function log_backscatter_data(event::Event, results_path, start_idx, stop_idx, maximum_relative_error)    
@@ -231,12 +259,11 @@ end
 
 function azimuth_scaling_factor(α)
     Ω_elfin_epd = 2π * (1 - cosd(ELFIN_EPD_FOV/2))
-    α_min = clamp(α - ELFIN_EPD_FOV/2, 0, 90)
-    α_max = clamp(α + ELFIN_EPD_FOV/2, 0, 90)
+    α_min = clamp(α - ELFIN_EPD_FOV/2, 0, 180)
+    α_max = clamp(α + ELFIN_EPD_FOV/2, 0, 180)
     Ω_ribbon = 2π * (cosd.(α_min) .- cosd.(α_max))
     return Ω_ribbon / Ω_elfin_epd
 end
-
 
 function get_beam_backscatter(event::Event, beam_weight, nearest_beam_energy, nearest_beam_pitch_angle, α_detector)
     backscatter_number = zeros(length(event.energy_bins_mean), length(α_detector))
@@ -386,7 +413,14 @@ function load_all_backscatter_into_memory()
     beam_pitch_angles = sort(unique(beam_pitch_angles))
 
     # Iterate and store
-    println("Loading backscatter momenta into memory...")
+    run(`clear`)
+    println(
+        """
+        ELFIN Lifetime Backscatter Analysis
+        --------------------------------------------------------
+        Loading backscatter momenta into memory...
+        """
+    )
     beams_finished = 0
     total_beams = length(beam_energies) * length(beam_pitch_angles)
     backscatter_data = Dict()
@@ -403,16 +437,17 @@ function load_all_backscatter_into_memory()
             # Print progress to terminal
             lock(stdout_threadlock) do
                 beams_finished += 1
-                print_progress_bar(beams_finished/total_beams)
+                print_progress_bar(beams_finished/total_beams, bar_length = 30)
             end
         end
     end
     return backscatter_data
 end
 
-
 tick()
 # Preload backscatter data
 const global backscatter_momentum_data = load_all_backscatter_into_memory() # Globals are hacky but I want this to be accessible in any scope without passing it as an argument to literally everything
-write_elfin_lifetime_backscatter_data()
+# Do analysis
+main()
 tock()
+

@@ -5,15 +5,14 @@ using Statistics, LinearAlgebra
 # Written by Julia Claxton. Contact: julia.claxton@colorado.edu
 # Released under MIT License.
 
-function print_progress_bar(fraction; bar_length = 30)
+function print_progress_bar(fraction; bar_length = 30, overwrite = true)
 # Prints a progress bar to terminal filled to user-specified percentage.
     character_length = 1/bar_length
     number_of_filled_characters = Int(floor(fraction/character_length))
-    print("\r")
+    if overwrite == true; print("\r"); end
     print(repeat("█", number_of_filled_characters))
     print(repeat("░", bar_length - number_of_filled_characters))
     print(" [$(round(fraction*100, digits = 1))%]")
-    if fraction == 1; println(); end
 end
 
 function edges_to_means(edges)

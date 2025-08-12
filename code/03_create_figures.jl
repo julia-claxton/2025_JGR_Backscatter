@@ -375,7 +375,7 @@ function figure_g4epp_backscatter_vs_nflux()
         colorbar = false,
         colorbar_title = "Log10 Density",
         colormap = :navia,
-        clims = (1, 3)
+        #clims = (1, 3)
     )
     p1 = plot!()
 
@@ -388,7 +388,7 @@ function figure_g4epp_backscatter_vs_nflux()
         colorbar = true,
         colorbar_title = "Log10 Density",
         colormap = :navia,
-        clims = (1, 3)
+        #clims = (1, 3)
     )
     p2 = plot!()
 
@@ -468,8 +468,8 @@ function figure_data_model_comparison()
         linestyle = :dash,
         linewidth = 2
     )
-    annotate!((2.3,  0.5, text("Underestimation", :white, :left)))
-    annotate!((-0.5, 5.0, text("Overestimation", :white, :left)))
+    annotate!((2.75, 0.75, text("Underestimation", :white, :left)))
+    annotate!((-0.5, 5.00, text("Overestimation", :white, :left)))
     display(plot!())
     png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")
 end
