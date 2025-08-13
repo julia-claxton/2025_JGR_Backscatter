@@ -412,17 +412,16 @@ function figure_1_to_1_event_simulation_residuals()
     
     plot(p1, p2,
         layout = (2,1),
-        size = (1, .65) .* 500,
+        size = (1, .65) .* 550,
         thickness_scaling = .6,
-        background = :transparent,
+        background_color_inside = :transparent,
         leftmargin = 10mm,
         dpi = 400
     )
-    display(plot!())
-    png("$(TOP_LEVEL)/paper/figures/backscatter_residuals.png")
+    return plot!()
 end
 
-function figure_data_model_comparison()
+function figure_data_model_heatmap()
     data = npzread("$(TOP_LEVEL)/data/figure_data/g4epp_elfin_comparison.npz")
     data_alc_flux_edges = data["data_alc_flux_edges"]
     sim_alc_flux_edges = data["sim_alc_flux_edges"]
@@ -443,8 +442,10 @@ function figure_data_model_comparison()
         ylims = lims,
         yticks = (ticks, ticklabels),
 
-        colorbar_title = "\nLog10 Occurrences, # Data Segments",
+        colorbar_title = "Log10 # Data Segments",
         colormap = :haline,
+
+        leftmargin = 7mm,
 
         framestyle = :box,
         tickdirection = :out,
@@ -463,6 +464,18 @@ function figure_data_model_comparison()
     )
     annotate!((2.75, -0.1, text("Underestimation", :white, :left)))
     annotate!((-0.5, 5.00, text("Overestimation", :white, :left)))
+    return plot!()
+end
+
+function figure_data_model_comparison()
+    p1 = figure_data_model_heatmap()
+    p2 = figure_1_to_1_event_simulation_residuals()
+
+    layout = @layout [a{.51w} b]
+    plot(p1, p2,
+        layout = layout,
+        size = (2, .8) .* 600
+    )
     display(plot!())
     png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")
 end
@@ -699,8 +712,8 @@ function residual_1d_histogram(bin_edges, frequencies)
         xminorgrid = true,
         xscale = :log10,
 
-        ylabel = "Occurrences, # Data Segments",
-        ylims = (0, 1.05max(frequencies...)),
+        ylabel = "Data Segments",
+        ylims = (0, 1400), #(0, 1.05max(frequencies...)),
 
         leftmargin = 5mm,
 
@@ -1114,6 +1127,9 @@ end
 Figure Generation
 ======================================
 """
+
+figure_data_model_comparison()
+error()
 
 figure_elfin_data()
 figure_data_coverage()
