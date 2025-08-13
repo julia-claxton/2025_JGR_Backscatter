@@ -468,7 +468,7 @@ function figure_data_model_comparison()
         linestyle = :dash,
         linewidth = 2
     )
-    annotate!((2.75, 0.75, text("Underestimation", :white, :left)))
+    annotate!((2.75, -0.1, text("Underestimation", :white, :left)))
     annotate!((-0.5, 5.00, text("Overestimation", :white, :left)))
     display(plot!())
     png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")

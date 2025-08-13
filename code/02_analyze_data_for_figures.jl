@@ -618,3 +618,11 @@ save_g4epp_predictions()
 save_beam_weighting_procedure()
 save_backscattered_pads()
 save_supplemental_curvefit_data()
+
+#=
+
+TODO!!!
+
+REDO BEAM WEIGHTING FIGURE TO REFLECT THE NEW VIRTUAL DETECTOR METHOD. WILL NEED TO MOVE DATA SAVER TO THE LIFETIME CALCULATION SCRIPT MOST LIKELY.
+
+=#
