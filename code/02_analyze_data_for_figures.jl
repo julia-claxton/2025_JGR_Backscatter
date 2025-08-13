@@ -348,51 +348,6 @@ function save_g4epp_predictions()
     println("Done")
 end
 
-function save_beam_weighting_procedure()
-    print("Saving beam weighting data... ")
-    # Get event
-    event = create_event(DateTime("2021-03-06T07:05:05"), DateTime("2021-03-06T07:05:15"), "B", maximum_relative_error = 0.5)
-    ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # MeV
-
-    # Get data fluence
-    _, data_nfluence = integrate_flux(event, time = true)
-
-    # Convert to counts
-    data_counts = [data_nfluence[E,α] .* ΔE[E] .* ELFIN_GEOMETRIC_FACTOR for E in 1:16, α in 1:16]
-    backscatter_input_distribution = copy(data_counts)
-
-    # Cull non-downgoing inputs
-    lc_idxs = 0 .< event.avg_pitch_angles .< 90
-    culled_backscatter_input_distribution = copy(backscatter_input_distribution)
-    culled_backscatter_input_distribution[:, .!lc_idxs] .= 0
-
-    # Get beam locations and weights
-    beam_energies, beam_pitch_angles = _get_beam_locations()
-    distro = create_distribution(event.energy_bins_min, event.energy_bins_max, event.avg_pitch_angles .- (ELFIN_EPD_FOV/2), event.avg_pitch_angles .+ (ELFIN_EPD_FOV/2), culled_backscatter_input_distribution, "counts")
-    beam_weights = _counts_to_beam_weights(distro)
-
-    # Get backscatter
-    backscatter_counts = simulate_backscatter(distro)
-
-    # Cull parts we aren't comparing
-    cull_idxs = event.avg_pitch_angles .< 90
-
-    npzwrite("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz",
-        avg_pitch_angles = event.avg_pitch_angles,
-        avg_energies = event.energy_bins_mean,
-        data_nfluence = data_nfluence,
-        data_counts = data_counts,
-        backscatter_input_distribution = backscatter_input_distribution,
-        culled_backscatter_input_distribution = culled_backscatter_input_distribution,
-        beam_energies = beam_energies,
-        beam_pitch_angles = beam_pitch_angles,
-        beam_weights = beam_weights,
-        backscatter_counts = backscatter_counts,
-        cull_idxs = cull_idxs
-    )
-    println("Done")
-end
-
 function save_backscattered_pads()
     print("Saving simulated backscatter PADs... ")
     input_pitch_angles = float([0:5:60..., 61:69..., 70:1:90...])
@@ -416,58 +371,6 @@ function save_backscattered_pads()
         high_energy = high_energy,
         high_energy_pad_weights = high_energy_pad_weights
     )
-    println("Done")
-end
-
-function save_data_model_events()
-    print("Saving data-model comparison events... ")
-
-    names = ["over", "under", "equal"]
-    starts = DateTime.(["2022-09-08T04:24:32.827", "2022-03-01T12:20:52.314", "2022-02-23T11:59:46.174"])
-    stops = DateTime.(["2022-09-08T04:24:41.689", "2022-03-01T12:21:18.013", "2022-02-23T11:59:54.630"])
-    sats = ["A", "B", "A"]
-
-    to_save = Dict{String, Any}()
-    for i in eachindex(names)
-        event = create_event(starts[i], stops[i], sats[i], maximum_relative_error = 0.5)
-        
-        # Get data fluence
-        ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # MeV
-        _, data_nfluence = integrate_flux(event, time = true)
-
-        # Convert to counts
-        data_counts = [data_nfluence[E,α] .* ΔE[E] .* ELFIN_GEOMETRIC_FACTOR for E in 1:16, α in 1:16]
-        backscatter_input_distribution = copy(data_counts)
-
-        # Cull non-downgoing inputs
-        lc_idxs = 0 .< event.avg_pitch_angles .< 90
-        culled_backscatter_input_distribution = copy(backscatter_input_distribution)
-        culled_backscatter_input_distribution[:, .!lc_idxs] .= 0
-
-        # Get beam locations and weights
-        beam_energies, beam_pitch_angles = _get_beam_locations()
-        distro = create_distribution(event.energy_bins_min, event.energy_bins_max, event.avg_pitch_angles .- (ELFIN_EPD_FOV/2), event.avg_pitch_angles .+ (ELFIN_EPD_FOV/2), culled_backscatter_input_distribution, "counts")
-        beam_weights = _counts_to_beam_weights(distro)
-
-        # Get backscatter
-        sim_counts = simulate_backscatter(distro)
-
-        # Cull parts we aren't comparing
-        cull_idxs = event.avg_pitch_angles .< 90
-
-        # Get alc amounts
-        α_alc = event.avg_anti_loss_cone_angle + (ELFIN_EPD_FOV/2)
-        alc_idxs = event.avg_pitch_angles .> α_alc
-
-        to_save["$(names[i])_alc_pitch_angle"] = α_alc
-        to_save["$(names[i])_alc_idxs"] = alc_idxs
-        to_save["$(names[i])_pitch_angles"] = event.avg_pitch_angles
-        to_save["$(names[i])_energies"] = event.energy_bins_mean
-        to_save["$(names[i])_data_counts"] = data_counts
-        to_save["$(names[i])_sim_counts"] = sim_counts
-
-    end
-    npzwrite("$(TOP_LEVEL)/data/figure_data/data_model_events.npz", to_save)
     println("Done")
 end
 
@@ -609,13 +512,8 @@ function quantile_index(v, q)
 end
 
 save_backscatter_figure_data()
-error()
-
-save_backscatter_figure_data()
 save_example_events()
-save_data_model_events()
 save_g4epp_predictions()
-save_beam_weighting_procedure()
 save_backscattered_pads()
 save_supplemental_curvefit_data()
 

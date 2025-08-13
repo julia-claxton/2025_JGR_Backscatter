@@ -19,6 +19,7 @@ include("$(TOP_LEVEL)/code/General_Functions.jl")
 Main Figures
 ======================================
 """
+
 function figure_elfin_data()
     event = create_event(DateTime("2021-03-05T03:38:30.084"),DateTime("2021-03-05T03:42:45.159"), "B", maximum_relative_error = .5)
     plot_event(event)
@@ -156,30 +157,26 @@ end
 
 function figure_beam_weighting()
     count_clims = (0, 3.5)
-    nflux_clims = (2, 6)
+    nflux_clims = (0, 4.5)
 
     data = npzread("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz")
     avg_pitch_angles = data["avg_pitch_angles"]
     avg_energies = data["avg_energies"]
-    data_nfluence = data["data_nfluence"]
+    avg_nflux = data["avg_nflux"]
     data_counts = data["data_counts"]
-    culled_backscatter_input_distribution = data["culled_backscatter_input_distribution"]
-    backscatter_input_distribution = data["backscatter_input_distribution"]
     beam_energies = data["beam_energies"]
     beam_pitch_angles = data["beam_pitch_angles"]
     beam_weights = data["beam_weights"]
-    backscatter_counts = data["backscatter_counts"]
-    cull_idxs = data["cull_idxs"]
+    sim_counts = data["sim_counts"]
 
-    plot_distribution(avg_energies, avg_pitch_angles, data_nfluence, :magma)
+    plot_distribution(avg_energies, avg_pitch_angles, avg_nflux, :magma)
     plot!(
-        title = "1) In-Situ Measured Fluence",
-        colorbar_title = "Log10 Electron Fluence, # cm⁻² str⁻¹ MeV⁻¹",
+        title = "1) In-Situ Measured Flux",
+        colorbar_title = "Log10 Electron Flux, # s cm⁻² str⁻¹ MeV⁻¹",
         clims = nflux_clims,
         leftmargin = 10mm
     )
     p1 = plot!()
-
 
     plot_distribution(avg_energies, avg_pitch_angles, data_counts, :ice)
     plot!(
@@ -189,26 +186,25 @@ function figure_beam_weighting()
     )
     p2 = plot!()
 
-    plot_distribution(avg_energies, avg_pitch_angles, backscatter_input_distribution, :ice)
-    beams_to_plot = beam_weights .≠ 0
-    scatter!(beam_pitch_angles[beams_to_plot], beam_energies[beams_to_plot],
-        title = "3) Assign Beam Weights",
+    plot_distribution(avg_energies, avg_pitch_angles, data_counts, :ice)
+    scatter!(beam_pitch_angles, beam_energies,
+        title = "3) Assign Azimuth-Scaled Beam Weights",
 
         label = false,
-        zcolor = log10.(beam_weights[beams_to_plot]),
-        markersize = 6,
+        zcolor = log10.(beam_weights),
+        markersize = 7,
 
         colormap = :ice,
         colorbar_title = "Log10 Electron Count, #",
-        clims = count_clims,
+        clims = (0, 4.5),
         leftmargin = 10mm
     )
     p3 = plot!()
 
-    plot_distribution(avg_energies, avg_pitch_angles[.!cull_idxs], backscatter_counts[:, .!cull_idxs], :ice)
+    plot_distribution(avg_energies, avg_pitch_angles[9:16], sim_counts, :ice)
     plot!(
         title = "4) Look Up Backscatter",
-        colorbar_title = "Log10 Electron Fluence, #",
+        colorbar_title = "Log10 Electron Count, #",
         clims = count_clims
     )
     p4 = plot!()
@@ -228,10 +224,7 @@ function figure_elfin_backscatter_vs_nflux()
     backscatter_bin_edges = data["backscatter_bin_edges"]
 
     n_frequencies = data["n_frequencies"]
-    normalized_n_frequencies = data["normalized_n_frequencies"]
-
     e_frequencies = data["e_frequencies"]
-    normalized_e_frequencies = data["normalized_e_frequencies"]
 
     backscatter_heatmap_plot()
     heatmap!(log10.(nflux_bin_edges), backscatter_bin_edges, log10.(n_frequencies)',
@@ -242,7 +235,7 @@ function figure_elfin_backscatter_vs_nflux()
         colorbar = false,
         colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
-        #clims = (0, 2),
+        clims = (0, 2.25),
 
         background_color_inside = :black
     )
@@ -257,7 +250,7 @@ function figure_elfin_backscatter_vs_nflux()
         colorbar = true,
         colorbar_title = "Log10 Occurrences, # Data Segments",
         colormap = :ice,
-        #clims = (0, 2),
+        clims = (0, 2.25),
 
         background_color_inside = :black
     )
@@ -285,7 +278,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
     trimmed_energy_frequencies = data["trimmed_energy_frequencies"]
     trimmed_number_frequencies = data["trimmed_number_frequencies"]
 
-    clims = (0, 2.3)
+    clims = (0, 2.5)
     heatmap(log10.(JoverJ90_bin_edges), backscatter_bin_edges, log10.(number_frequencies'),
         title = "All Eligible Data",
     
@@ -474,26 +467,6 @@ function figure_data_model_comparison()
     png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")
 end
 
-function figure_data_model_event_examples()
-    names = ["over", "under", "equal"]
-    starts = DateTime.(["2022-09-08T04:24:32.827", "2022-03-01T12:20:52.314", "2022-02-23T11:59:46.174"])
-    stops = DateTime.(["2022-09-08T04:24:41.689", "2022-03-01T12:21:18.013", "2022-02-23T11:59:54.630"])
-    sats = ["A", "B", "A"]
-    data = npzread("$(TOP_LEVEL)/data/figure_data/data_model_events.npz")
-
-    plots = []
-    for i in 1:3
-        push!(plots, plot_data_vs_model_event(data, names[i], starts[i], stops[i], sats[i]))
-    end
-
-    plot(plots...,
-        layout = (3, 1),
-        size = (1.4, 1.7) .* 700
-    )
-    png("$(TOP_LEVEL)/paper/figures/data_model_comparison_examples.png")
-    display(plot!())
-end
-
 function figure_predicted_backscatter()
     data = npzread("$(TOP_LEVEL)/data/figure_data/simulated_backscatter_rates.npz")
     energies = data["energies"]
@@ -657,18 +630,19 @@ end
 Recipes
 ======================================
 """
+
 function backscatter_heatmap_plot()
     plot(
         title = "",
 
         xlabel = "Loss Cone Number Flux, # cm⁻² s⁻¹",
-        xlims = (1, 7),
+        xlims = (0.5, 6.5),
         xminorticks = 4,
-        xticks = (1:7, ["10¹", "10²", "10³", "10⁴", "10⁵", "10⁶", "10⁷"]),
+        xticks = (1:6, ["10¹", "10²", "10³", "10⁴", "10⁵", "10⁶"]),
 
         ylabel = "",
-        ylims = (0, 1),
-        yticks = 0:.1:1,
+        ylims = (0, 1.1),
+        yticks = 0:.1:1.1,
         yminorticks = 5
     )
     plot!(
@@ -1141,7 +1115,7 @@ Figure Generation
 ======================================
 """
 
-figure_data_model_comparison()
+figure_elfin_backscatter_vs_precipitation_ratio()
 error()
 
 figure_elfin_data()
@@ -1153,7 +1127,6 @@ figure_filling_vs_backscatter()
 
 figure_beam_weighting()
 figure_data_model_comparison()
-figure_data_model_event_examples()
 figure_predicted_backscatter()
 figure_backscattered_pads()
 

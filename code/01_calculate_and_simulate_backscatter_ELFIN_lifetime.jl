@@ -297,7 +297,6 @@ function detect_backscatter(beam_energy, beam_pitch_angle, detector_α; detector
     return number_detected
 end
 
-
 function find_datafile(data_type, file_prefix, input_particle, beam_energy, beam_pitch_angle; quiet = false)
     # Get the file corresponding to this prefix, energy, and pitch angle. If there are multiple files that have different numbers of input
     # particles, this will select the run with the larger number of input particles. There shouldn't be multiple files like that,
@@ -444,9 +443,109 @@ function load_all_backscatter_into_memory()
     return backscatter_data
 end
 
+#################
+# Figure stuff
+#################
+function save_beam_weighting_procedure()
+    print("Saving beam weighting data... ")
+    # Get event
+    maximum_relative_error = 0.5
+    event = create_event(DateTime("2021-03-06T07:05:05"), DateTime("2021-03-06T07:05:15"), "B", maximum_relative_error = maximum_relative_error)
+    _, n_fluence = integrate_flux(event, time = true)
+    avg_nflux = n_fluence / event.duration
+
+    α_lc = mean(event.loss_cone_angles)
+    α_alc = mean(event.anti_loss_cone_angles)
+    α_center = dropdims(mean(event.pitch_angles, dims = 1), dims = 1)
+
+    cone_standoff_angle = ELFIN_EPD_FOV / 2 # Minimum distance into the loss/antiloss cone a pitch angle bin center must be in order to be counted 
+    
+    # Get loss cone, trapped, and anti-loss cone region bounds
+    # Northern hemisphere
+    loss_cone_limits = (0, α_lc - cone_standoff_angle)
+    trapped_limits = (α_lc, α_alc)
+    anti_loss_cone_limits = (α_alc + cone_standoff_angle, 180)
+    downgoing_limits = (0, 90)
+
+    # Simulate event with G4EPP
+    ΔE = (event.energy_bins_max .- event.energy_bins_min) ./ 1000 # Units: MeV
+    data_counts = [event.n_flux[t,E,α] * (ELFIN_SPIN_PERIOD/16) * ΔE[E] * ELFIN_GEOMETRIC_FACTOR for t in 1:event.n_datapoints, E in 1:16, α in 1:16] # Units: number
+    data_counts = dropdims(sum(data_counts, dims = 1), dims = 1)
+
+    # Get masks for loss/anti-loss cone and downgoing pitch angle bins
+    lc_mask        = loss_cone_limits[1] .< α_center .< loss_cone_limits[2]
+    alc_mask       = anti_loss_cone_limits[1] .< α_center .< anti_loss_cone_limits[2]
+    downgoing_mask = downgoing_limits[1] .< α_center .< downgoing_limits[2]
+
+    # Get beam weights
+    beam_energies, beam_pitch_angles, beam_weights = get_beam_weights(event::Event, α_center, data_counts, alc_mask)
+
+    # Simulate backscatter
+    sim_counts, _ = simulate_elfin_backscatter(event, α_center, data_counts, alc_mask)
+
+    # Cut out bins that would've been discarded in ELFIN data due to low counts
+    # Using δq/q ≈ 1/√counts (shot noise), which is what ELFIN does
+    sim_relative_error = 1 ./ sqrt.(sim_counts)
+    sim_counts[sim_relative_error .> maximum_relative_error] .= 0
+    
+    npzwrite("$(TOP_LEVEL)/data/figure_data/beam_weighting.npz",
+        avg_pitch_angles = α_center,
+        avg_energies = event.energy_bins_mean,
+        avg_nflux = avg_nflux,
+        data_counts = data_counts,
+        beam_energies = beam_energies,
+        beam_pitch_angles = beam_pitch_angles,
+        beam_weights = beam_weights,
+        sim_counts = sim_counts
+    )
+    println("Done")
+end
+
+function get_beam_weights(event::Event, α_center, data_counts, alc_mask)
+    # Get locations of precomputed beams
+    beam_energies, beam_pitch_angles = get_beam_locations()
+    beam_energies     = sort(unique(beam_energies))
+    beam_pitch_angles = sort(unique(beam_pitch_angles))
+
+    # Iterate over ELFIN's downgoing bins
+    weighted_energies = []
+    weighted_pitch_angles = []
+    beam_weights = []
+    for E_idx in 1:16
+        for α_idx in 1:2:16
+            # Get energy and pitch angle of this bin
+            E = event.energy_bins_mean[E_idx]
+            α = α_center[α_idx]
+
+            # Guard block
+            if data_counts[E_idx, α_idx] == 0; continue; end
+            if !(0 .≤ α .≤ 90); continue; end
+
+            # Get nearest beam
+            _, nearest_beam_energy_idx = findmin(abs.(beam_energies .- E))
+            nearest_beam_energy = beam_energies[nearest_beam_energy_idx]
+            
+            _, nearest_beam_pitch_angle_idx = findmin(abs.(beam_pitch_angles .- α))
+            nearest_beam_pitch_angle = beam_pitch_angles[nearest_beam_pitch_angle_idx]
+
+            # Store
+            push!(weighted_energies, nearest_beam_energy)
+            push!(weighted_pitch_angles, nearest_beam_pitch_angle)
+            push!(beam_weights, data_counts[E_idx, α_idx] * azimuth_scaling_factor(α))
+        end
+    end
+    return float.(weighted_energies), float.(weighted_pitch_angles), float.(beam_weights)
+end
+
+#=
 tick()
 # Preload backscatter data
 const global backscatter_momentum_data = load_all_backscatter_into_memory() # Globals are hacky but I want this to be accessible in any scope without passing it as an argument to literally everything
 # Do analysis
 main()
 tock()
+=#
+
+# Figure data saving
+const global backscatter_momentum_data = load_all_backscatter_into_memory() # Globals are hacky but I want this to be accessible in any scope without passing it as an argument to literally everything
+save_beam_weighting_procedure()
