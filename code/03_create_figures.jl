@@ -201,7 +201,7 @@ function figure_beam_weighting()
     )
     p3 = plot!()
 
-    plot_distribution(avg_energies, avg_pitch_angles[9:16], sim_counts, :ice)
+    plot_distribution(avg_energies, avg_pitch_angles[12:16], sim_counts, :ice)
     plot!(
         title = "4) Look Up Backscatter",
         colorbar_title = "Log10 Electron Count, #",
@@ -1114,9 +1114,6 @@ end
 Figure Generation
 ======================================
 """
-
-figure_elfin_backscatter_vs_precipitation_ratio()
-error()
 
 figure_elfin_data()
 figure_data_coverage()
