@@ -400,13 +400,17 @@ function figure_1_to_1_event_simulation_residuals()
     residual_bin_edges = data["residual_bin_edges"]
     number_residual_frequencies = data["number_residual_frequencies"]
     energy_residual_frequencies = data["energy_residual_frequencies"]
+    energy_residual_std = data["energy_residual_std"]
+    number_residual_std = data["number_residual_std"]
+    energy_residual_mean = data["energy_residual_mean"]
+    number_residual_mean = data["number_residual_mean"]
     
     # Plot
-    residual_1d_histogram(residual_bin_edges, number_residual_frequencies)
+    residual_1d_histogram(residual_bin_edges, number_residual_frequencies, number_residual_mean, number_residual_std)
     plot!(xlabel = "Simulation Backscatter/Data Backscatter, #/#")
     p1 = plot!()
     
-    residual_1d_histogram(residual_bin_edges, energy_residual_frequencies)
+    residual_1d_histogram(residual_bin_edges, energy_residual_frequencies, energy_residual_mean, energy_residual_std)
     plot!(xlabel = "Simulation Backscatter/Data Backscatter, keV/keV")
     p2 = plot!()
     
@@ -421,24 +425,32 @@ function figure_1_to_1_event_simulation_residuals()
     return plot!()
 end
 
-function figure_data_model_heatmap()
+function figure_data_model_heatmap(;
+    type = "number",
+    lims = (-1, 6),
+    annotation = true
+    )
+
     data = npzread("$(TOP_LEVEL)/data/figure_data/g4epp_elfin_comparison.npz")
     data_alc_flux_edges = data["data_alc_flux_edges"]
     sim_alc_flux_edges = data["sim_alc_flux_edges"]
-    data_model_heatmap_number_frequencies = data["data_model_heatmap_number_frequencies"]
-    data_model_heatmap_energy_frequencies = data["data_model_heatmap_energy_frequencies"]
+    frequencies = data["data_model_heatmap_$(type)_frequencies"]
+
+    xlabel_unit = "#"
+    if type == "energy"
+        xlabel_unit = "keV"
+    end
 
     # Julia plots moves the tick labels when using log10 scale with heatmaps, making the figure wholly invalid. Why this happens is anyone's guess.
     # So I must make my own log10 ticks by hand. Sigh.
-    lims = round.((-1, 6))
     ticks = vcat([log10.(10.0^i .* (1:10)) for i in lims[1]:lims[2]-1]...)
     ticklabels = vcat([vcat(string(i), repeat([""],9)) for i in lims[1]:lims[2]-1]...)
-    heatmap(data_alc_flux_edges, sim_alc_flux_edges, log10.(data_model_heatmap_number_frequencies'),
-        xlabel = "Log10 Data Anti-Loss Cone Flux, # cm⁻² s⁻¹",
+    heatmap(data_alc_flux_edges, sim_alc_flux_edges, log10.(frequencies'),
+        xlabel = "Log10 Data Anti-Loss Cone Flux, $(xlabel_unit) cm⁻² s⁻¹",
         xlims = lims,
         xticks = (ticks, ticklabels),
 
-        ylabel = "Log10 Simulation Anti-Loss Cone Flux, # cm⁻² s⁻¹",
+        ylabel = "Log10 Simulation Anti-Loss Cone Flux, $(xlabel_unit) cm⁻² s⁻¹",
         ylims = lims,
         yticks = (ticks, ticklabels),
 
@@ -453,7 +465,7 @@ function figure_data_model_heatmap()
         background_color_outside = :transparent,
         background_color_inside = RGB(0.7),
         aspect_ratio = 1,
-        size = (1.3, 1) .* 450,
+        size = (1.3, 1) .* 500,
         dpi = 300
     )
     plot!([-100, 100], [-100, 100],
@@ -462,8 +474,10 @@ function figure_data_model_heatmap()
         linestyle = :dash,
         linewidth = 2
     )
-    annotate!((2.75, -0.1, text("Underestimation", :white, :left)))
-    annotate!((-0.5, 5.00, text("Overestimation", :white, :left)))
+    if (annotation == true)
+        annotate!((2.75, -0.1, text("Underestimation", :white, :left)))
+        annotate!((-0.5, 5.00, text("Overestimation", :white, :left)))
+    end
     return plot!()
 end
 
@@ -638,6 +652,12 @@ function supplemental_curvefit()
     png("$(TOP_LEVEL)/paper/figures/supplemental_curvefit")
 end
 
+function supplemental_data_model()
+    figure_data_model_heatmap(type = "energy", lims = (1,8), annotation = false)
+    display(plot!())
+    png("$(TOP_LEVEL)/paper/figures/supplemental_data_model")
+end
+
 """
 ======================================
 Recipes
@@ -698,7 +718,7 @@ function plot_1d_histogram!(bin_edges, data;
     return plot!()
 end
 
-function residual_1d_histogram(bin_edges, frequencies)
+function residual_1d_histogram(bin_edges, frequencies, μ, σ)
     plot(bin_edges, [frequencies..., frequencies[end]],
         label = false,
         linetype = :steppost,
@@ -713,13 +733,27 @@ function residual_1d_histogram(bin_edges, frequencies)
         xscale = :log10,
 
         ylabel = "Data Segments",
-        ylims = (0, 1400), #(0, 1.05max(frequencies...)),
+        ylims = (0, 1400),
 
         leftmargin = 5mm,
 
         framestyle = :box,
         tickdirection = :out
     )
+
+    μ_logspace = log10.(μ)
+    σ_logspace = log10.(σ)
+
+    vline!(10.0 .^ [μ_logspace],
+        label = "μ",
+        linecolor = :black,
+    )
+    vline!(10.0 .^ [μ_logspace - σ_logspace, μ_logspace + σ_logspace],
+        label = "±1σ",
+        linestyle = :dash,
+        linecolor = :black
+    )
+    #@show σ
     box_aspect!(.25)
     return plot!()
 end
@@ -1128,9 +1162,6 @@ Figure Generation
 ======================================
 """
 
-figure_data_model_comparison()
-error()
-
 figure_elfin_data()
 figure_data_coverage()
 
@@ -1145,3 +1176,4 @@ figure_backscattered_pads()
 
 supplemental_ribbon()
 supplemental_curvefit()
+supplemental_data_model()

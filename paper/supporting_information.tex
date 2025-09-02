@@ -116,11 +116,12 @@
 \date{}
 
 \begin{document}
-In this document we present a power law fit for backscatter ratio as a function of loss cone filling derived from ELFIN data. The data we are fitting to is shown in Figure \ref{figure:backscatter-vs-precipitation} (reproduced from manuscript). For this fit, we will only consider the case with low precipitating fluxes excluded, shown in the right panel.
+\section{Backscatter Rate Curvefit}
+In this section we present a power law fit for backscatter ratio as a function of loss cone filling derived from ELFIN data. The data we are fitting to is shown in Figure \ref{figure:backscatter-vs-precipitation} (reproduced from manuscript). For this fit, we will only consider the case with low precipitating fluxes excluded, shown in the right panel.
 
 \begin{figure}[H]
   \centering
-  \noindent\includegraphics[width=0.9\textwidth]{figures/backscatter_vs_precipitation_ratio.png}
+  \noindent\includegraphics[width=0.8\textwidth]{figures/backscatter_vs_precipitation_ratio.png}
   \caption{
     Number backscatter ratio vs. loss cone filling strength derived from \backscattertime of ELFIN data. Any measurement of backscatter ratio with absolute uncertainty greater than $\sigma \approx 0.025$ was discarded. Left: Results all eligible ELFIN data (see manuscript). Right: Measurements with precipitating flux less than $10^{2.75}$~electrons-cm$^{-2}$-s$^{-1}$ removed. Energy backscatter ratio has a similar pattern to number backscatter ratio and is not shown for brevity.
   }
@@ -131,7 +132,7 @@ First we find the median backscatter ratio for every $J_\text{precip}/J_\text{tr
 
 \begin{figure}[H]
   \centering
-  \noindent\includegraphics[width=0.9\textwidth]{figures/supplemental_curves.png}
+  \noindent\includegraphics[width=0.8\textwidth]{figures/supplemental_curves.png}
   \caption{
     Median backscatter (black line) as well as the $25$th and $75$ percentile (grey ribbon below and above, respectively) as a function of precipitation strength. Left panel shows the number backscatter ratio $r_N$, right panel shows the energy backscatter $r_E$.
   }
@@ -149,11 +150,24 @@ These fits are plotted over the data in Figure \ref{figure:curvefit} below.
 
 \begin{figure}[H]
   \centering
-  \noindent\includegraphics[width=0.9\textwidth]{figures/supplemental_curvefit.png}
+  \noindent\includegraphics[width=0.8\textwidth]{figures/supplemental_curvefit.png}
   \caption{
     Median backscatter rates (grey line with dots) at a variety of loss cone filling levels with a power law curvefit (black line) overlaid. Left: Number backscatter ratio as a function of loss cone filling. Right: Energy backscatter ratio as a fucntion of loss cone filling.
   }
   \label{figure:curvefit}
+\end{figure}
+
+\newpage
+\section{Energy Backscatter Residuals}
+ELFIN-derived energy backscatter plotted against simulation-predicted energy backscatter is shown below.
+
+\begin{figure}[H]
+  \centering
+  \noindent\includegraphics[width=0.7\textwidth]{figures/supplemental_data_model.png}
+  \caption{
+    Anti-loss cone energy flux predicted by lookup tables derived from our Monte Carlo simulation vs. ELFIN-measured anti-loss cone energy for all ELFIN data segments that were simulated. The dashed white line indicates where predicted backscatter was equal to ELFIN-measured backscatter.
+  }
+  \label{figure:data-model}
 \end{figure}
 
 

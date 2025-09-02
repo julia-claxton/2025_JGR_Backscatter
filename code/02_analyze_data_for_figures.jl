@@ -169,7 +169,16 @@ function save_backscatter_figure_data(;
     residual_bin_edges = 10.0.^(-2.5:.05:2.5)
     energy_residual_frequencies = exact_1dhistogram(energy_residuals[e_idxs_to_analyze], residual_bin_edges)
     number_residual_frequencies = exact_1dhistogram(number_residuals[n_idxs_to_analyze], residual_bin_edges)
-        
+    
+    e_finite_idxs = isfinite.(energy_residuals) .&& (energy_residuals .≠ 0)
+    n_finite_idxs = isfinite.(number_residuals) .&& (number_residuals .≠ 0)
+
+    energy_residual_std = 10.0 ^ std(log10.(energy_residuals[e_idxs_to_analyze .&& e_finite_idxs]))
+    number_residual_std = 10.0 ^ std(log10.(number_residuals[n_idxs_to_analyze .&& n_finite_idxs]))
+
+    energy_residual_mean = 10.0 ^ mean(log10.(energy_residuals[e_idxs_to_analyze .&& e_finite_idxs]))
+    number_residual_mean = 10.0 ^ mean(log10.(number_residuals[n_idxs_to_analyze .&& n_finite_idxs]))
+
     backscatter_bin_spacing = .025
     backscatter_bin_edges = 0:backscatter_bin_spacing:2
     
@@ -228,6 +237,10 @@ function save_backscatter_figure_data(;
         comparison_data_backscatter_edges = comparison_data_backscatter_edges,
         comparison_number_frequencies = comparison_number_frequencies,
         comparison_energy_frequencies = comparison_energy_frequencies,
+        energy_residual_std = energy_residual_std,
+        number_residual_std = number_residual_std,
+        energy_residual_mean = energy_residual_mean,
+        number_residual_mean = number_residual_mean,
 
         data_alc_flux_edges = data_alc_flux_edges,
         sim_alc_flux_edges = sim_alc_flux_edges,
@@ -516,11 +529,3 @@ save_example_events()
 save_g4epp_predictions()
 save_backscattered_pads()
 save_supplemental_curvefit_data()
-
-#=
-
-TODO!!!
-
-REDO BEAM WEIGHTING FIGURE TO REFLECT THE NEW VIRTUAL DETECTOR METHOD. WILL NEED TO MOVE DATA SAVER TO THE LIFETIME CALCULATION SCRIPT MOST LIKELY.
-
-=#
