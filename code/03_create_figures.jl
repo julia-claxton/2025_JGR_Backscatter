@@ -11,7 +11,6 @@ using LaTeXStrings
 
 include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Events.jl")
 include("$(TOP_LEVEL)/code/Julia_ELFIN_Tools/Visualization.jl")
-include("$(TOP_LEVEL)/code/G4EPP_2.0/Frontend_Functions.jl")
 include("$(TOP_LEVEL)/code/General_Functions.jl")
 
 """
@@ -131,24 +130,24 @@ function figure_filling_vs_backscatter()
     generate_pad_plot(ambient_pa_means, ambient_pad, ambient_lc, 180-ambient_lc, ambient_rn, annotate = true)
     p1 = plot!(
         ylabel = "Energy, keV",
-        leftmargin = 10mm,
-        rightmargin = 5mm
+        leftmargin = 6mm,
+        rightmargin = 0mm
     )
     generate_pad_plot(filling_pa_means, filling_pad, filling_lc, 180-filling_lc, filling_rn, annotate = true)
     p2 = plot!(
-        ylabel = "Energy, keV",
-        leftmargin = 5mm,
-        rightmargin = 5mm
+        leftmargin = 0mm,
+        rightmargin = 0mm
     )
     generate_pad_plot(between_pa_means, between_pad, between_lc, 180-between_lc, between_rn, annotate = true)
     p3 = plot!(
-        ylabel = "Energy, keV",
-        leftmargin = 5mm
+        rightmargin = 5mm,
+        colorbar = true
     )
 
+    layout = @layout [a b c{.422w}]
     plot(p1, p2, p3,
-        layout = (1,3),
-        size = (2.4, .6) .* 550,
+        layout = layout,
+        size = (2.4, .8) .* 300,
         dpi = 400
     )
     display(plot!())
@@ -211,7 +210,7 @@ function figure_beam_weighting()
 
     plot(p1, p2, p3, p4,
         layout = (2,2),
-        size = (1,.8) .* 800,
+        size = (1,.8) .* 650,
         thickness_scaling = .65
     )
     display(plot!())
@@ -259,7 +258,7 @@ function figure_elfin_backscatter_vs_nflux()
     layout = @layout [a{.438w} b]
     plot(p1, p2,
         layout = layout,
-        size = (2, .85) .* 400,
+        size = (2, .85) .* 300,
         dpi = 400
     )
     display(plot!())
@@ -337,7 +336,7 @@ function figure_elfin_backscatter_vs_precipitation_ratio()
     layout = @layout [a{.438w} b]
     plot(p1, p2,
         layout = layout,
-        size = (2, .9) .* 400,
+        size = (2, .9) .* 300,
         background_color_outside = :transparent,
         thickness_scaling = .6,
         dpi = 400
@@ -475,8 +474,8 @@ function figure_data_model_heatmap(;
         linewidth = 2
     )
     if (annotation == true)
-        annotate!((2.75, -0.1, text("Underestimation", :white, :left)))
-        annotate!((-0.5, 5.00, text("Overestimation", :white, :left)))
+        annotate!((2.5, -0.1, text("Underestimation", :white, :left, 12)))
+        annotate!((-0.5, 5.00, text("Overestimation", :white, :left, 12)))
     end
     return plot!()
 end
@@ -488,7 +487,7 @@ function figure_data_model_comparison()
     layout = @layout [a{.51w} b]
     plot(p1, p2,
         layout = layout,
-        size = (2, .8) .* 600
+        size = (2, .8) .* 500
     )
     display(plot!())
     png("$(TOP_LEVEL)/paper/figures/data_model_comparison.png")
@@ -560,7 +559,7 @@ function figure_predicted_backscatter()
     layout = @layout [a{.88w} b]
     plot(main_plot, colorbar_plot,
         layout = layout,
-        size = (1.1, 1) .* 700,
+        size = (1.1, 1) .* 550,
         thickness_scaling = .6,
         background_color = :transparent,
         dpi = 400
@@ -588,7 +587,7 @@ function figure_backscattered_pads()
     layout = @layout [a{.44w} b]
     plot(p1, p2,
         layout = layout,
-        size = (2, .9) .* 600,
+        size = (2, .9) .* 500,
         dpi = 400
     )
     display(plot!())
@@ -876,7 +875,7 @@ function predicted_backscatter_plot(α_to_plot, backscatter)
         for α in eachindex(pitch_angles)
             color = RGBA(1,1,1,.75)
             if backscatter[E, α] > .7; color = RGBA(.0,.1,.1,.75); end
-            annotate!(pitch_angles[α], energies[E], text("$(round(backscatter[E,α] * 100, digits = 1))%", 7, color, :center))
+            annotate!(pitch_angles[α], energies[E], text("$(round(backscatter[E,α] * 100, digits = 1))%", 5, color, :center))
         end
     end
     box_aspect!(1)
@@ -934,7 +933,7 @@ function backscattered_pad(pad_bin_edges, input_pa_edges, pad_weights, input_ene
         linestyle = :solid,
         color = :white,
     )
-    annotate!(140, 80, "Untrapped", :white)
+    annotate!(133, 80, "Untrapped", :white)
     annotate!(100, 30, text("Retrapped", :white, rotation = 90))
     box_aspect!(1)
     return plot!()
@@ -983,9 +982,10 @@ function generate_pad_plot(pitch_angles, pad, α_lc, α_alc, rn; annotate = fals
         yscale = :log10,
         yminorticks = true,
 
-        colorbar_title = "Log10 Electron Flux, # s⁻¹ cm⁻² str⁻¹ MeV⁻¹",
+        colorbar_title = "Log10 Electron Flux\n# s⁻¹ cm⁻² str⁻¹ MeV⁻¹",
+        colorbar = false,
         colormap = :ice,
-        clims = (log10(max(pad...)) + lower_clim_Δ, log10(max(pad...))+upper_clim_Δ),
+        clims = (2.25, 4.8),
 
         topmargin = -5mm,
 
@@ -1161,6 +1161,9 @@ end
 Figure Generation
 ======================================
 """
+
+figure_backscattered_pads()
+error()
 
 figure_elfin_data()
 figure_data_coverage()
