@@ -1,6 +1,9 @@
 # Raw data files
 *.cdf
 
+# Peer reviews
+*response_to_reviewers*
+
 # OS crap
 .DS_Store
 .DS_Store?
