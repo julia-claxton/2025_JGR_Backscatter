@@ -1,5 +1,6 @@
 # **Electron Backscatter in Energetic Particle Precipitation: Data Analysis and Simulation**
 #### Julia Claxton (she/they) || julia.claxton@colorado.edu
+[![DOI](https://zenodo.org/badge/1022259805.svg)](https://doi.org/10.5281/zenodo.17792566)
 
 This repository contains the code and data necessary to replicate the analysis, results, and figures from the paper *"Electron Backscatter in Energetic Particle Precipitation: Data Analysis and Simulation"* submitted to the Journal of Geophysical Research.
 
