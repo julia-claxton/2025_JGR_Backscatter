@@ -208,6 +208,12 @@ function figure_beam_weighting()
     )
     p4 = plot!()
 
+    idx = 12:16
+    s = sum(sim_counts)
+    d = sum(data_counts[:, idx])
+
+    @show abs(d-s)/d
+
     plot(p1, p2, p3, p4,
         layout = (2,2),
         size = (1,.8) .* 650,
@@ -1162,7 +1168,7 @@ Figure Generation
 ======================================
 """
 
-figure_backscattered_pads()
+figure_beam_weighting()
 error()
 
 figure_elfin_data()
